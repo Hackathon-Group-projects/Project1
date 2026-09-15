@@ -17,8 +17,8 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
-// Placeholder for your routes (to be built later)
-// app.use('/api/scan', require('./routes/scan'));
+// Register the main scan route (add this after app.use(express.json()))
+app.use('/api/scan', require('./routes/scan'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
