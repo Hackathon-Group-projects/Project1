@@ -16,9 +16,12 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "mongoose": "^9.10.0",
     "node-fetch": "^2.7.0",
     "npm": "^11.19.1",
-    "ssl-checker": "^3.0.1"
+    "ssl-checker": "^3.0.1",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

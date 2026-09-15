@@ -1,13 +1,17 @@
 // server/routes/scan.js
+// At the top, import the new CVE service
+const { lookupCvesForTechStack } = require('../services/cveService');
+const Scan = require('../models/Scan');
 const express = require('express');
 const scanRouter = express.Router();
+const { checkTechStack } = require('../services/techService');
 
 // Import our custom security scanning services
 const { checkSSL } = require('../services/sslService');
 const { checkHeaders } = require('../services/headerService');
 
-// Handle POST requests sent to /api/scan/start from the frontend
-scanRouter.post('/start', async (request, response) => {
+// Handle POST requests sent to /api/scan from the frontend (matches shared team schema)
+scanRouter.post('/', async (request, response) => {
   
   // Extract the website URL that the user wants to scan from the request body
   const targetWebsiteUrl = request.body.url;
@@ -27,12 +31,28 @@ scanRouter.post('/start', async (request, response) => {
     // Run the HTTP headers scanner to check for missing security configurations
     const headerScannerOutput = await checkHeaders(targetWebsiteUrl);
 
-    // Group all the individual scanner outputs into one unified results object
+    // Run the Wappalyzer scanner to detect frameworks, CMS, and servers
+    const techScannerOutput = await checkTechStack(targetWebsiteUrl);
+
+    // Use the tech list from Wappalyzer to look up known CVEs from OSV.dev
+    const cveScannerOutput = await lookupCvesForTechStack(techScannerOutput);
+
+    // Group all scanner outputs — key names match the shared team schema exactly
     const combinedScanResults = {
       ssl: sslScannerOutput,
-      headers: headerScannerOutput
-      // Future scanners (Wappalyzer, Nuclei) will be added here later
+      headers: headerScannerOutput,
+      tech: techScannerOutput,   // ← 'tech' matches shared schema (not 'techStack')
+      cves: cveScannerOutput
     };
+
+    // Inside try block, save the result to the database
+    const newScanRecord = new Scan({
+      targetUrl: targetWebsiteUrl,
+      targetHostname: new URL(targetWebsiteUrl).hostname,
+      status: 'completed',
+      rawResults: combinedScanResults
+    });
+    await newScanRecord.save(); // Persist to MongoDB
 
     // Send a successful response back to the frontend containing the scanned data
     response.status(200).json({
