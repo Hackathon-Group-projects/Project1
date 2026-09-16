@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +26,10 @@
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "mongodb": "^7.6.0",
-    "mongoose": "^9.10.0"
+    "mongoose": "^9.10.1",
+    "node-fetch": "^2.7.0",
+    "nodemon": "^3.1.14",
+    "ssl-checker": "^3.0.1",
+    "uuid": "^14.0.2"
   }
 }
