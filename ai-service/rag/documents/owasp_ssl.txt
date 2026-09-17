@@ -1,0 +1,147 @@
+OWASP TLS/SSL Security Guide
+==============================
+
+SSL/TLS protects data in transit between the user's browser and your server. Weak or misconfigured SSL is one of the most common and exploitable vulnerabilities.
+
+OWASP Category: A02:2021 – Cryptographic Failures
+
+## SSL Certificate Basics
+
+An SSL certificate authenticates your server and enables encrypted communication. Key things to check:
+
+1. Certificate validity — is it expired or self-signed?
+2. Days until expiry — should be > 30 days
+3. Certificate grade — A+ is best (Qualys SSL Labs grading)
+4. Certificate chain — intermediate certs must be properly configured
+5. Subject Alternative Names (SAN) — must match the domain
+
+## SSL Grade Breakdown
+
+- Grade A+ — Perfect configuration, HSTS enabled, strong ciphers
+- Grade A  — Good configuration, minor issues
+- Grade B  — Weak cipher suites or older TLS version supported
+- Grade C  — TLS 1.0 or 1.1 still enabled (deprecated)
+- Grade F  — Certificate expired, invalid, or not trusted
+
+## Common SSL Issues and Fixes
+
+### Issue 1: Self-Signed Certificate
+Risk: Users see "Your connection is not private" warning. Browser blocks connection.
+
+Fix: Get a free certificate from Let's Encrypt:
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+Auto-renewal setup:
+```bash
+sudo systemctl enable certbot.timer
+sudo certbot renew --dry-run
+```
+
+### Issue 2: Certificate Expiry (< 30 days remaining)
+Fix: Renew immediately:
+```bash
+sudo certbot renew
+sudo systemctl reload nginx
+```
+To auto-renew via cron:
+```bash
+0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+### Issue 3: TLS 1.0 / 1.1 Still Enabled
+These versions are deprecated (RFC 8996). Modern browsers reject them.
+
+### Nginx Fix — disable old TLS:
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+```
+
+### Apache Fix:
+```apache
+SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256
+SSLHonorCipherOrder off
+```
+
+### Issue 4: Missing HSTS Header
+Without HSTS, attackers can downgrade HTTPS to HTTP (SSL stripping attack).
+
+Nginx fix:
+```nginx
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+```
+
+### Issue 5: Hostname Mismatch
+The certificate domain doesn't match the accessed domain. Causes browser error.
+
+Fix: Reissue certificate with correct SAN entries:
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
+```
+
+### Issue 6: Weak Cipher Suites
+Some old cipher suites (RC4, DES, 3DES, NULL) are cryptographically broken.
+
+Complete secure Nginx SSL config:
+```nginx
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    
+    # Only TLS 1.2 and 1.3
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384;
+    
+    # OCSP stapling
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    
+    # Session cache
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+    
+    # HSTS
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    
+    # Redirect all HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
+}
+```
+
+## Express.js HTTPS Setup
+```javascript
+const https = require('https');
+const fs = require('fs');
+
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/yourdomain.com/fullchain.pem'),
+  secureProtocol: 'TLSv1_2_method',
+  ciphers: 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384',
+};
+
+https.createServer(options, app).listen(443);
+
+// Redirect HTTP to HTTPS
+const http = require('http');
+http.createServer((req, res) => {
+  res.writeHead(301, { Location: 'https://' + req.headers.host + req.url });
+  res.end();
+}).listen(80);
+```
+
+OWASP Reference: https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html

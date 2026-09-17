@@ -1,0 +1,175 @@
+Nginx Security Hardening Guide
+================================
+
+Complete Nginx security configuration for web applications.
+
+## Complete Secure Nginx Server Block
+
+```nginx
+# /etc/nginx/nginx.conf or /etc/nginx/sites-available/yourdomain.com
+
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    # Security Headers — ADD ALL OF THESE
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; upgrade-insecure-requests;" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(self)" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Hide Nginx version
+    server_tokens off;
+
+    # Block access to hidden files
+    location ~ /\. {
+        deny all;
+        return 404;
+    }
+
+    # Block access to sensitive files
+    location ~* \.(env|git|sql|log|bak|old|swp)$ {
+        deny all;
+        return 404;
+    }
+
+    # Block WordPress sensitive paths
+    location ~* /wp-config\.php {
+        deny all;
+        return 404;
+    }
+
+    # Proxy to Node.js backend
+    location /api/ {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Serve React frontend
+    location / {
+        root /var/www/yourdomain.com/build;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    location /api/scan/ {
+        limit_req zone=api burst=5 nodelay;
+        proxy_pass http://localhost:3001;
+    }
+}
+```
+
+## Blocking Exposed Sensitive Files
+
+This is one of the most commonly found vulnerabilities. These files should NEVER be publicly accessible:
+
+```nginx
+# Block all these file types
+location ~* \.(env|env\.local|env\.production|env\.development)$ {
+    deny all;
+    return 404;
+}
+
+location ~ /\.git {
+    deny all;
+    return 404;
+}
+
+location ~* /(composer\.(json|lock)|package\.(json|lock)|yarn\.lock)$ {
+    deny all;
+    return 404;
+}
+
+location ~* /phpinfo\.php$ {
+    deny all;
+    return 404;
+}
+```
+
+## Rate Limiting Configuration
+
+```nginx
+# Define rate limit zones in http {} block
+http {
+    limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+    limit_req_zone $binary_remote_addr zone=api:10m rate=60r/m;
+    limit_req_zone $binary_remote_addr zone=scan:10m rate=10r/h;
+}
+
+server {
+    # Apply to login endpoint — max 5 per minute
+    location /api/auth/login {
+        limit_req zone=login burst=3 nodelay;
+        proxy_pass http://localhost:3001;
+    }
+
+    # Apply to scan endpoint — max 10 per hour
+    location /api/scan {
+        limit_req zone=scan burst=2 nodelay;
+        proxy_pass http://localhost:3001;
+    }
+}
+```
+
+## WordPress-Specific Nginx Hardening
+
+```nginx
+server {
+    # Disable PHP execution in uploads folder
+    location ~* /(?:uploads|files)/.*\.php$ {
+        deny all;
+    }
+
+    # Block WordPress XML-RPC (common attack vector)
+    location = /xmlrpc.php {
+        deny all;
+        return 404;
+    }
+
+    # Block author scans
+    if ($query_string ~ "author=\d+") {
+        return 403;
+    }
+
+    # Protect wp-config.php
+    location = /wp-config.php {
+        deny all;
+        return 404;
+    }
+
+    # Hide WordPress version
+    location ~* /wp-includes/.*\.php$ {
+        deny all;
+    }
+}
+```

@@ -1,0 +1,213 @@
+Common Misconfigurations and Exposure Vulnerabilities
+======================================================
+
+This document covers the most commonly detected vulnerabilities by security scanners like Nuclei, including exposed files, CORS misconfigurations, and admin panel exposures.
+
+## Exposed .env File
+
+### What it is:
+.env files contain secret API keys, database passwords, and other credentials. If accessible at https://yourdomain.com/.env, attackers can steal all your secrets instantly.
+
+### Risk: CRITICAL
+An exposed .env file completely compromises your application. Attackers get your database password, API keys, JWT secrets — everything.
+
+### How to fix (Nginx):
+```nginx
+location ~ /\.env {
+    deny all;
+    return 404;
+}
+```
+
+### How to fix (Apache):
+```apache
+<FilesMatch "^\.env">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+### How to fix (Express.js — verify it's not served):
+```javascript
+// Make sure static file serving doesn't expose .env
+app.use(express.static('public')); // serve only from 'public' folder, not root
+// NEVER: app.use(express.static('.')) // this would expose .env!
+```
+
+### Immediate response if .env was exposed:
+1. Immediately rotate ALL credentials in the .env file
+2. Change database passwords
+3. Regenerate API keys (Gemini, Wappalyzer, etc.)
+4. Change JWT secret (invalidates all existing sessions)
+5. Block the path in web server config
+
+---
+
+## Exposed .git Directory
+
+### What it is:
+If /.git/ is accessible, attackers can download your entire source code, including commit history with previously hardcoded credentials.
+
+### Risk: CRITICAL
+
+### Fix (Nginx):
+```nginx
+location ~ /\.git {
+    deny all;
+    return 404;
+}
+```
+
+### Fix (Apache):
+```apache
+<DirectoryMatch "\.git">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+```
+
+---
+
+## CORS Misconfiguration
+
+### What it is:
+Cross-Origin Resource Sharing (CORS) controls which domains can make requests to your API. A misconfigured CORS policy can allow any website to make authenticated requests to your API on behalf of logged-in users.
+
+### Risk: HIGH — allows cross-site request forgery, data theft
+
+### Vulnerable code (DO NOT USE):
+```javascript
+app.use(cors({
+  origin: '*',         // allows ALL websites
+  credentials: true    // sends cookies — EXTREMELY DANGEROUS combined with wildcard
+}));
+```
+
+### Secure fix:
+```javascript
+const allowedOrigins = [
+  'https://yourdomain.com',
+  'https://app.yourdomain.com',
+  process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : null
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+}));
+```
+
+---
+
+## Exposed Admin Panels
+
+### WordPress Admin (/wp-admin, /wp-login.php):
+Moving or protecting the login page prevents automated attacks.
+
+IP restriction via Nginx:
+```nginx
+location /wp-admin {
+    allow YOUR.IP.ADDRESS;
+    deny all;
+}
+
+location = /wp-login.php {
+    allow YOUR.IP.ADDRESS;
+    deny all;
+}
+```
+
+Rate limit login attempts (Nginx):
+```nginx
+limit_req_zone $binary_remote_addr zone=wp_login:10m rate=1r/s;
+location = /wp-login.php {
+    limit_req zone=wp_login burst=3 nodelay;
+    fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+    include fastcgi_params;
+}
+```
+
+### phpMyAdmin Exposure:
+Never expose phpMyAdmin on production. If needed, restrict to specific IP:
+```nginx
+location /phpmyadmin {
+    allow 192.168.1.0/24;  # your IP range only
+    deny all;
+}
+```
+
+---
+
+## Open Redirect Vulnerability
+
+### What it is:
+If your app redirects to a URL provided by the user without validation, attackers use it to redirect victims to phishing sites.
+
+### Vulnerable code:
+```javascript
+app.get('/redirect', (req, res) => {
+  res.redirect(req.query.url); // DANGEROUS — allows redirect to any site
+});
+```
+
+### Safe fix:
+```javascript
+const ALLOWED_REDIRECT_PATHS = ['/dashboard', '/profile', '/settings'];
+
+app.get('/redirect', (req, res) => {
+  const redirectPath = req.query.redirect;
+  // Only allow relative paths or whitelisted domains
+  if (redirectPath && ALLOWED_REDIRECT_PATHS.includes(redirectPath)) {
+    res.redirect(redirectPath);
+  } else {
+    res.redirect('/dashboard'); // safe fallback
+  }
+});
+```
+
+---
+
+## Backup Files Exposed (.bak, .sql, .old)
+
+Attackers look for backup files that are accidentally left in the web root.
+
+### Nginx fix:
+```nginx
+location ~* \.(bak|sql|old|swp|tmp|orig|backup)$ {
+    deny all;
+    return 404;
+}
+```
+
+### Apache fix:
+```apache
+<FilesMatch "\.(bak|sql|old|swp|tmp|orig|backup)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+---
+
+## Security.txt (Best Practice)
+
+Add a security.txt file to help security researchers report vulnerabilities responsibly:
+
+```
+# https://yourdomain.com/.well-known/security.txt
+Contact: mailto:security@yourdomain.com
+Expires: 2025-12-31T23:59:59.000Z
+Preferred-Languages: en
+Policy: https://yourdomain.com/security-policy
+```
+
+OWASP Reference: https://owasp.org/www-project-web-security-testing-guide/
+Nuclei Templates: https://github.com/projectdiscovery/nuclei-templates
