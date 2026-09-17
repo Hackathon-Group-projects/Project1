@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Background grid pattern */
+.left-grid-bg {
+  background-color: #F3F5F8;
+  background-image: 
+    linear-gradient(to right, rgba(140, 149, 166, 0.22) 1.5px, transparent 1.5px),
+    linear-gradient(to bottom, rgba(140, 149, 166, 0.22) 1.5px, transparent 1.5px);
+  background-size: 38px 38px;
+}
+
+/* Animations */
+@keyframes moveCubeX {
+  0% { transform: translate(0px, 0px) rotate(8deg); }
+  50% { transform: translate(32px, -8px) rotate(24deg); }
+  100% { transform: translate(0px, 0px) rotate(8deg); }
+}
+
+@keyframes moveCircleY {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-16px) scale(1.06); }
+  100% { transform: translateY(0px) scale(1); }
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.85) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.25) rotate(35deg); }
+}
+
+.anim-cube-1 { animation: moveCubeX 7s ease-in-out infinite; }
+.anim-circle-1 { animation: moveCircleY 5.5s ease-in-out infinite; }
+.anim-circle-2 { animation: moveCircleY 7s ease-in-out infinite 1s; }
+.anim-star-1 { animation: starTwinkle 2.8s ease-in-out infinite; }
+.anim-star-2 { animation: starTwinkle 3.6s ease-in-out infinite 1s; }
+
+/* Technical Precision Dot Grid Pattern */
+.bg-tech-matrix {
+  background-color: #F8F9FB;
+  background-image: radial-gradient(rgba(140, 149, 166, 0.28) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+/* Gradient Shimmer Effect for Progress Bar */
+@keyframes progressShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg, 
+    #5B6475 0%, 
+    #8C95A6 35%, 
+    #B0B8C7 50%, 
+    #8C95A6 65%, 
+    #5B6475 100%
+  );
+  background-size: 200% 100%;
+  animation: progressShimmer 2.2s infinite linear;
+}
+
+/* Terminal Cursor Blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  animation: blink 1s infinite;
+}
