@@ -1,81 +1,21 @@
-// server/routes/scan.js
-// At the top, import the new CVE service
-const { lookupCvesForTechStack } = require('../services/cveService');
-const Scan = require('../models/Scan');
+
 const express = require('express');
 const scanRouter = express.Router();
-const { checkTechStack } = require('../services/techService');
+const Scan = require('../models/Scan');
 
-// Import our custom security scanning services
+// Import core security scanning services
 const { checkSSL } = require('../services/sslService');
 const { checkHeaders } = require('../services/headerService');
+const { checkTechStack } = require('../services/techService');
+const { lookupCvesForTechStack } = require('../services/cveService');
 
+// Setup event emitter for SSE background progress streaming
 const EventEmitter = require('events');
 class ScanEmitter extends EventEmitter { }
 const scanEmitter = new ScanEmitter();
 const { v4: uuidv4 } = require('uuid');
 
-// Handle POST requests sent to /api/scan from the frontend (matches shared team schema)
-scanRouter.post('/', async (request, response) => {
-
-  // Extract the website URL that the user wants to scan from the request body
-  const targetWebsiteUrl = request.body.url;
-
-  // Check if the frontend forgot to provide a URL, and stop the process if it is missing
-  if (!targetWebsiteUrl) {
-    return response.status(400).json({ error: 'Please provide a valid URL to scan.' });
-  }
-
-  try {
-    // Log the start of the scan to the server console so we can monitor activity
-    console.log(`Starting security scan for target: ${targetWebsiteUrl}`);
-
-    // Run the SSL scanner to check the website's certificate validity and security grade
-    const sslScannerOutput = await checkSSL(targetWebsiteUrl);
-
-    // Run the HTTP headers scanner to check for missing security configurations
-    const headerScannerOutput = await checkHeaders(targetWebsiteUrl);
-
-    // Run the Wappalyzer scanner to detect frameworks, CMS, and servers
-    const techScannerOutput = await checkTechStack(targetWebsiteUrl);
-
-    // Use the tech list from Wappalyzer to look up known CVEs from OSV.dev
-    const cveScannerOutput = await lookupCvesForTechStack(techScannerOutput);
-
-    // Group all scanner outputs — key names match the shared team schema exactly
-    const combinedScanResults = {
-      ssl: sslScannerOutput,
-      headers: headerScannerOutput,
-      tech: techScannerOutput,   // ← 'tech' matches shared schema (not 'techStack')
-      cves: cveScannerOutput
-    };
-
-    // Inside try block, save the result to the database
-    const newScanRecord = new Scan({
-      targetUrl: targetWebsiteUrl,
-      targetHostname: new URL(targetWebsiteUrl).hostname,
-      status: 'completed',
-      rawResults: combinedScanResults
-    });
-    await newScanRecord.save(); // Persist to MongoDB
-
-    // Send a successful response back to the frontend containing the scanned data
-    response.status(200).json({
-      message: "Scan completed successfully",
-      targetUrl: targetWebsiteUrl,
-      rawResults: combinedScanResults
-    });
-
-  } catch (scanError) {
-    // Log the exact error to the terminal if anything crashes during the scanning process
-    console.error('An error occurred during the scan sequence:', scanError);
-
-    // Send a safe 500 error back to the frontend so the user interface doesn't freeze
-    response.status(500).json({ error: 'An internal server error occurred while scanning the target.' });
-  }
-});
-
-// Start a Scan and return scanId immediately
+// Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
   const targetUrl = req.body.url;
   if (!targetUrl) return res.status(400).json({ error: 'Please provide a valid URL to scan.' });
@@ -88,12 +28,14 @@ scanRouter.post('/start', async (req, res) => {
     message: 'Scan initialized successfully'
   });
 
+  // Run the sequence in the background
   runScanSequenceSSE(scanId, targetUrl).catch(err => {
     console.error(`Background scan error for ${scanId}:`, err);
   });
 });
 
-// GET endpoint to listen to Server-Sent Events using the scanId
+// SSE Endpoint. Frontend subscribes to this to receive live log updates.
+
 scanRouter.get('/progress', (req, res) => {
   const { scanId } = req.query;
   if (!scanId) return res.status(400).json({ error: 'scanId query parameter is required.' });
@@ -104,6 +46,7 @@ scanRouter.get('/progress', (req, res) => {
 
   const progressListener = (data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
+
     if (data.type === 'done' || data.type === 'error') {
       res.end();
       scanEmitter.removeListener(scanId, progressListener);
@@ -117,7 +60,6 @@ scanRouter.get('/progress', (req, res) => {
   });
 });
 
-// Background scanning logic that emits events
 async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
   try {
     scanEmitter.emit(scanId, { type: 'progress', step: 'SSL Scan', progress: 20, log: 'Checking SSL...', scanId });
@@ -141,15 +83,17 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
 
     scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results...', scanId });
 
+    // Persist final report
     const newScanRecord = new Scan({
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
       rawResults: combinedScanResults
     });
-    await newScanRecord.save();
 
+    await newScanRecord.save();
     scanEmitter.emit(scanId, { type: 'done', scanId: scanId, log: 'Finished.' });
+
   } catch (error) {
     scanEmitter.emit(scanId, { type: 'error', scanId: scanId, message: error.message });
   }
