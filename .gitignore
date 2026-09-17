@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Environment variables
-.env
+# ChromaDB local database
+ai-service/**/chroma_db/
 
 # MacOS system files
 .DS_Store
@@ -17,3 +17,11 @@ lerna-debug.log*
 
 # Optional npm cache directory
 .npm
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+.env.*

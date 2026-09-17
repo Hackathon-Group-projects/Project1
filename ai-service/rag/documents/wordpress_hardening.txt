@@ -1,0 +1,175 @@
+WordPress Security Hardening Guide
+=====================================
+
+WordPress powers 43% of all websites and is one of the most targeted platforms. Here's a complete hardening guide.
+
+## wp-config.php Security
+
+```php
+<?php
+// wp-config.php — Secure configuration
+
+// 1. Move wp-config.php one level above web root
+// Default: /var/www/html/wp-config.php
+// Secure: /var/www/wp-config.php  (outside public web root)
+
+// 2. Disable file editing from WordPress dashboard
+define('DISALLOW_FILE_EDIT', true);
+
+// 3. Disable plugin/theme installation (optional, high security)
+define('DISALLOW_FILE_MODS', true);
+
+// 4. Force HTTPS for admin
+define('FORCE_SSL_ADMIN', true);
+
+// 5. Disable WordPress debug in production
+define('WP_DEBUG', false);
+define('WP_DEBUG_LOG', false);
+define('WP_DEBUG_DISPLAY', false);
+
+// 6. Limit post revisions to save database space
+define('WP_POST_REVISIONS', 5);
+
+// 7. Disable XML-RPC (major attack vector)
+// Add to functions.php:
+// add_filter('xmlrpc_enabled', '__return_false');
+
+// 8. Security Keys — generate fresh from:
+// https://api.wordpress.org/secret-key/1.1/salt/
+define('AUTH_KEY', 'put-your-unique-phrase-here');
+define('SECURE_AUTH_KEY', 'put-your-unique-phrase-here');
+// ... (generate all 8 keys)
+```
+
+## .htaccess Security (Apache-based WordPress)
+
+```apache
+# /var/www/html/.htaccess
+
+# Protect wp-config.php — CRITICAL
+<files wp-config.php>
+order allow,deny
+deny from all
+</files>
+
+# Protect .htaccess itself
+<files .htaccess>
+order allow,deny
+deny from all
+</files>
+
+# Block directory browsing
+Options -Indexes
+
+# Disable XML-RPC
+<files xmlrpc.php>
+order deny,allow
+deny from all
+</files>
+
+# Block PHP execution in uploads folder
+<Directory "/var/www/html/wp-content/uploads">
+<Files "*.php">
+Order Deny,Allow
+Deny from all
+</Files>
+</Directory>
+
+# Block access to sensitive files
+<FilesMatch "(^#.*#|\.(bak|conf|dist|env|git|in[ci]|log|orig|sql|sw[op]|~))$">
+Order Allow,Deny
+Deny from all
+Satisfy All
+</FilesMatch>
+
+# Prevent author enumeration
+RewriteEngine On
+RewriteCond %{QUERY_STRING} (author=\d+) [NC]
+RewriteRule ^ /? [R=301,L]
+
+# WordPress standard rewrite
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+```
+
+## Security Headers via functions.php
+
+```php
+<?php
+// Add to your theme's functions.php
+
+function wordpress_security_headers() {
+    // Content Security Policy
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; object-src 'none';");
+    
+    // Other security headers
+    header("X-Frame-Options: SAMEORIGIN");
+    header("X-Content-Type-Options: nosniff");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
+    header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+    
+    // Remove WordPress version from headers
+    header_remove('X-Powered-By');
+}
+add_action('send_headers', 'wordpress_security_headers');
+
+// Remove WordPress version number from everywhere
+remove_action('wp_head', 'wp_generator');
+add_filter('the_generator', '__return_empty_string');
+
+// Remove version from scripts and styles
+function remove_version_from_assets($src) {
+    if (strpos($src, 'ver=')) {
+        $src = remove_query_arg('ver', $src);
+    }
+    return $src;
+}
+add_filter('style_loader_src', 'remove_version_from_assets');
+add_filter('script_loader_src', 'remove_version_from_assets');
+
+// Disable XML-RPC completely
+add_filter('xmlrpc_enabled', '__return_false');
+remove_action('wp_head', 'rsd_link');
+remove_action('wp_head', 'wlwmanifest_link');
+
+// Limit login attempts (use plugin or manual)
+function check_attempted_login($user, $username, $password) {
+    $failed_key = 'failed_logins_' . $_SERVER['REMOTE_ADDR'];
+    $fails = (int) get_transient($failed_key);
+    if ($fails >= 5) {
+        return new WP_Error('too_many_retries', 'Account locked. Try again in 15 minutes.');
+    }
+    return $user;
+}
+add_filter('authenticate', 'check_attempted_login', 30, 3);
+
+function login_failed($username) {
+    $failed_key = 'failed_logins_' . $_SERVER['REMOTE_ADDR'];
+    $fails = (int) get_transient($failed_key);
+    set_transient($failed_key, $fails + 1, 15 * MINUTE_IN_SECONDS);
+}
+add_action('wp_login_failed', 'login_failed');
+```
+
+## Keep WordPress Updated
+
+The most important security measure — always run the latest version:
+- WordPress core: Update immediately when new version releases
+- Plugins: Check for updates weekly
+- Themes: Update monthly
+
+To check current version vulnerabilities:
+- WPScan: https://wpscan.com/
+- WPVulnDB: https://wpvulndb.com/
+
+## Recommended Security Plugins
+
+1. Wordfence Security — WAF + malware scanner
+2. iThemes Security — hardens settings automatically
+3. Sucuri Security — monitoring + firewall
+
+OWASP Reference: https://cheatsheetseries.owasp.org/cheatsheets/Wordpress_Security_Cheat_Sheet.html

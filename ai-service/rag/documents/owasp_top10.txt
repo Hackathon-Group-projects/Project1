@@ -1,0 +1,243 @@
+OWASP Top 10 2021 — Security Vulnerability Reference
+======================================================
+
+## A01:2021 – Broken Access Control
+
+Access control enforces policy such that users cannot act outside of their intended permissions.
+
+Common vulnerabilities:
+- Accessing API endpoints without authentication
+- Viewing/modifying another user's data by changing an ID in the URL
+- Accessing admin pages as a regular user
+
+Fix in Express.js:
+```javascript
+// Middleware to verify JWT
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch { res.status(403).json({ error: 'Invalid token' }); }
+};
+
+// Protect routes
+app.get('/api/admin', authenticate, requireRole('admin'), handler);
+```
+
+---
+
+## A02:2021 – Cryptographic Failures
+
+Failure to protect sensitive data in transit or at rest.
+
+Common issues:
+- Sensitive data transmitted over HTTP instead of HTTPS
+- Weak password hashing (MD5, SHA1)
+- Hardcoded secrets in source code
+
+Fix — Use bcrypt for passwords:
+```javascript
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 12;
+
+// Hash password on register
+const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+
+// Verify on login
+const isValid = await bcrypt.compare(inputPassword, hashedPassword);
+```
+
+---
+
+## A03:2021 – Injection
+
+Injection occurs when untrusted data is sent to an interpreter as part of a command or query.
+
+### SQL Injection prevention:
+```javascript
+// BAD — vulnerable
+db.query(`SELECT * FROM users WHERE id = ${req.params.id}`);
+
+// GOOD — parameterized
+db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
+```
+
+### NoSQL Injection (MongoDB) prevention:
+```javascript
+// BAD — vulnerable to {$gt: ""} injection
+User.find({ email: req.body.email });
+
+// GOOD — sanitize and validate types
+const { email } = req.body;
+if (typeof email !== 'string') return res.status(400).send('Bad input');
+User.find({ email: email.toString() });
+```
+
+### XSS Prevention:
+```javascript
+// Use DOMPurify on frontend
+import DOMPurify from 'dompurify';
+const clean = DOMPurify.sanitize(userInput);
+
+// Use helmet on backend for CSP
+app.use(helmet());
+```
+
+---
+
+## A04:2021 – Insecure Design
+
+Security must be designed in from the start, not bolted on.
+
+Common issues:
+- No rate limiting on login endpoints (allows brute force)
+- No account lockout after failed attempts
+- Predictable resource IDs
+
+Fix — Rate limiting:
+```javascript
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: 'Too many requests, please try again later'
+});
+app.use('/api/', limiter);
+
+// Stricter limit for auth endpoints
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5 });
+app.use('/api/auth/', authLimiter);
+```
+
+---
+
+## A05:2021 – Security Misconfiguration
+
+Improperly configured permissions, default accounts, unnecessary features enabled.
+
+Common issues:
+- Exposed .env files
+- Default admin credentials not changed
+- Verbose error messages showing stack traces
+- Open S3 buckets / cloud storage
+
+Fix — Disable verbose errors in production:
+```javascript
+// Development: show full error
+if (process.env.NODE_ENV === 'development') {
+  app.use((err, req, res, next) => res.status(500).json({ error: err.stack }));
+}
+// Production: hide internal details
+else {
+  app.use((err, req, res, next) => res.status(500).json({ error: 'Internal server error' }));
+}
+```
+
+Fix — Protect .env file (Nginx):
+```nginx
+location ~ /\.env {
+    deny all;
+    return 404;
+}
+location ~ /\.git {
+    deny all;
+    return 404;
+}
+```
+
+---
+
+## A06:2021 – Vulnerable and Outdated Components
+
+Using components with known vulnerabilities.
+
+Fix — Regular dependency auditing:
+```bash
+# Check for vulnerabilities
+npm audit
+
+# Auto-fix non-breaking vulnerabilities
+npm audit fix
+
+# Check specific package versions against CVE databases
+npx npm-check-updates
+```
+
+---
+
+## A07:2021 – Identification and Authentication Failures
+
+Weak authentication allowing attackers to impersonate users.
+
+Fix — Secure session management:
+```javascript
+const session = require('express-session');
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,       // HTTPS only
+    httpOnly: true,     // No JS access
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: 'strict'  // CSRF protection
+  }
+}));
+```
+
+---
+
+## A08:2021 – Software and Data Integrity Failures
+
+Unauthorized code or updates being applied without integrity verification.
+
+Fix — Verify npm package integrity using package-lock.json:
+```bash
+npm ci  # use this in CI/CD instead of npm install — verifies lockfile
+```
+
+---
+
+## A09:2021 – Security Logging and Monitoring Failures
+
+Insufficient logging means breaches go undetected.
+
+Fix — Log security events:
+```javascript
+const winston = require('winston');
+const logger = winston.createLogger({ ... });
+
+app.use((req, res, next) => {
+  if (res.statusCode === 401 || res.statusCode === 403) {
+    logger.warn(`Auth failure: ${req.method} ${req.url} from ${req.ip}`);
+  }
+  next();
+});
+```
+
+---
+
+## A10:2021 – Server-Side Request Forgery (SSRF)
+
+Attacker tricks server into making requests to internal services.
+
+Fix — Validate and whitelist URLs before making server-side requests:
+```javascript
+const { URL } = require('url');
+const ALLOWED_HOSTS = ['api.trustedservice.com', 'data.partner.com'];
+
+function validateUrl(urlString) {
+  const url = new URL(urlString);
+  if (!ALLOWED_HOSTS.includes(url.hostname)) {
+    throw new Error('Host not allowed');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Protocol not allowed');
+  }
+  return url.toString();
+}
+```
+
+OWASP Reference: https://owasp.org/www-project-top-ten/
