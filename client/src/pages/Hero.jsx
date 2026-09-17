@@ -36,9 +36,10 @@ export default function Hero() {
   };
 
   return (
-    <div className='mt-[50px] mx-auto '>
+    // Added radial gradient / dotted background classes here
+    <div className='mt-[50px] mx-auto min-h-screen bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] pb-12 px-4'>
       {/* Hero Intro */}
-      <div className="text-center max-w-xl mx-auto mb-8">
+      <div className="text-center max-w-xl mx-auto mb-8 pt-4">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200/90 mb-3 shadow-xs">
           <HiSparkles className="text-slate-600 text-[13px]" />
           <span>Passive, ethical, AI-powered scanning</span>
@@ -117,7 +118,7 @@ export default function Hero() {
       </div>
 
       {/* Stats Section */}
-      <section className="max-w-2xl mx-auto py-4 px-6 border-y border-slate-200/90 grid grid-cols-3 gap-4 text-center mb-10 bg-white/70 rounded-xl">
+      <section className="max-w-2xl mx-auto py-4 px-6 border-y border-slate-200/90 grid grid-cols-3 gap-4 text-center mb-10 bg-white/70 rounded-xl backdrop-blur-xs">
         <div>
           <div className="text-xl sm:text-2xl font-bold text-slate-900 font-mono">1,240+</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Sites Scanned</div>
@@ -145,7 +146,7 @@ export default function Hero() {
             return (
               <div 
                 key={idx} 
-                className={`p-3 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-all shadow-2xs ${idx === 4 ? 'col-span-2 sm:col-span-1' : ''}`}
+                className={`p-3 rounded-lg bg-white/90 backdrop-blur-xs border border-slate-300 hover:border-slate-900 transition-all shadow-2xs ${idx === 4 ? 'col-span-2 sm:col-span-1' : ''}`}
               >
                 <div className="w-7 h-7 rounded bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 mb-2">
                   <Icon className="text-[14px]" />
@@ -160,7 +161,7 @@ export default function Hero() {
 
       {/* Workflow & Sample Preview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-10 w-10/12 mx-auto">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs">
+        <div className="p-4 rounded-xl bg-white/90 backdrop-blur-xs border border-slate-200 flex flex-col justify-between shadow-2xs">
           <div>
             <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider">How It Works</span>
             <h3 className="text-xs font-semibold text-slate-900 mt-1 mb-3">3-Step Non-Invasive Flow</h3>
@@ -191,7 +192,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="relative rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between overflow-hidden shadow-2xs">
+        <div className="relative rounded-xl border border-slate-200 bg-white/90 backdrop-blur-xs p-4 flex flex-col justify-between overflow-hidden shadow-2xs">
           <div className="absolute inset-0 p-4 opacity-10 filter blur-[3px] pointer-events-none font-mono text-[10px] space-y-1 text-slate-800 select-none">
             <div>TARGET: demo.testfire.net</div>
             <div>[PASS] TLS 1.3 handshake successful</div>

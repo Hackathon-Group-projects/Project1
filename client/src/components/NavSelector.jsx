@@ -50,7 +50,7 @@ export default function NavSelector() {
         >
           {/* Main App Views */}
           <optgroup label="App Views" className="text-slate-400 text-[10px] font-mono uppercase font-semibold">
-            <option value="/" className="text-slate-800 text-xs">Landing </option>
+            <option value="/dash" className="text-slate-800 text-xs">Landing </option>
             <option value="/scanning" className="text-slate-800 text-xs">Scanning</option>
             <option value="/report" className="text-slate-800 text-xs">Security Report</option>
           </optgroup>
