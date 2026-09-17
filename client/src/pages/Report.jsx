@@ -1,9 +1,6 @@
-import React from 'react';
-import { NavLink, Routes, Route, Link, useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { 
-  FiArrowLeft, 
-  FiDownload, 
-  FiShare2, 
   FiShield, 
   FiLock, 
   FiFileText, 
@@ -19,14 +16,32 @@ import HeadersTab from '../report/HeadersTab';
 import SslTab from '../report/SslTab';
 import CvesTab from '../report/CvesTab';
 import NucleiTab from '../report/NucleiTab';
-import AiFixTab from '../report/AiFixTab'; // Fixed import
+import AiFixTab from '../report/AiFixTab';
 
 export default function Report() {
   const { id = 'sec-9481b' } = useParams();
+  
+  // 1. Manage active tab state (defaults to 'overview')
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert('Report link copied to clipboard!');
+  // 2. Function to render the correct component based on state
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <OverviewTab />;
+      case 'headers':
+        return <HeadersTab />;
+      case 'ssl':
+        return <SslTab />;
+      case 'cves':
+        return <CvesTab />;
+      case 'nuclei':
+        return <NucleiTab />;
+      case 'ai':
+        return <AiFixTab />;
+      default:
+        return <OverviewTab />;
+    }
   };
 
   return (
@@ -142,94 +157,75 @@ export default function Report() {
                 <span>Export PDF</span>
               </button>
             </div>
-            
           </div>
         </aside>
 
         {/* MAIN PANEL (70%) */}
         <section className="w-full lg:w-[70%] flex flex-col gap-5">
           
-          {/* Internal Tabs Link Bar */}
+          {/* Internal Tab Buttons (Replaced NavLinks with regular buttons + state handlers) */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto">
-            <NavLink
-              to=""
-              end
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'overview' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               Overview
-            </NavLink>
+            </button>
 
-            <NavLink
-              to="/headers"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('headers')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'headers' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               Headers (3)
-            </NavLink>
+            </button>
 
-            <NavLink
-              to="/ssl"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('ssl')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'ssl' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               SSL / TLS
-            </NavLink>
+            </button>
 
-            <NavLink
-              to="/cves"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('cves')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'cves' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               CVEs (7)
-            </NavLink>
+            </button>
 
-            <NavLink
-              to="/nuclei"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('nuclei')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'nuclei' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               Nuclei (2)
-            </NavLink>
+            </button>
 
-            <NavLink
-              to="/ai"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-                }`
-              }
+            <button
+              onClick={() => setActiveTab('ai')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'ai' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
             >
               <HiSparkles className="text-[14px]" />
               <span>AI Remediation</span>
               <span className="ml-1 px-1.5 py-0.2 rounded text-[10px] bg-cyan-100 text-cyan-800 font-mono font-bold">RAG</span>
-            </NavLink>
+            </button>
           </div>
 
-          {/* Internal Routes */}
-          <Routes>
-            <Route index element={<OverviewTab />} />
-            <Route path="/headers" element={<HeadersTab />} />
-            <Route path="/ssl" element={<SslTab />} />
-            <Route path="/cves" element={<CvesTab />} />
-            <Route path="/nuclei" element={<NucleiTab />} />
-            <Route path="/ai" element={<AiFixTab />} />
-          </Routes>
+          {/* Render Active Component Manually */}
+          <div className="w-full">
+            {renderTabContent()}
+          </div>
 
         </section>
 

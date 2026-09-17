@@ -28,7 +28,7 @@ function Layout() {
           <Route index element={<LandingPage />} />
           <Route path="/dash" element={<Hero />} />
           <Route path="/scanning" element={<ScanningPage />} />
-          <Route path="/report" element={<Report />} />
+          <Route path="/report/*" element={<Report />} />
           <Route path="/login" element={<AuthPage />} />
         </Routes>
       </div>
