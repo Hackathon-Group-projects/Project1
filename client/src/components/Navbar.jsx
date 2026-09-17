@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { FiMenu, FiClock, FiBookOpen, FiArrowUpRight } from 'react-icons/fi';
-import { RiLoginCircleLine } from "react-icons/ri";
-import { GiCyberEye } from "react-icons/gi"; // ← Added missing import
+import { RiLoginCircleLine, RiLogoutCircleLine } from "react-icons/ri";
+import { GiCyberEye } from "react-icons/gi";
 import NavSelector from './NavSelector';
+import { AuthContext } from '../context/AuthContext';
 export default function Navbar({ onToggleSidebar }) {
+  const { userEmail, logout } = useContext(AuthContext);
   return (
     <header className="w-full h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
       
@@ -69,14 +71,29 @@ export default function Navbar({ onToggleSidebar }) {
           <FiArrowUpRight className="text-slate-500 text-[13px]" />
         </Link>
 
-        {/* Login Button */}
-        <Link 
-          to="/login" 
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#1a1a1a] hover:bg-[#747E91] shadow-2xs transition-all active:scale-[0.98]"
-        >
-          <RiLoginCircleLine className="text-white text-[14px]" />
-          <span>Login</span>
-        </Link>
+        {/* Login / User Button */}
+        {userEmail ? (
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-slate-700 hidden sm:inline">
+              {userEmail.split('@')[0]}
+            </span>
+            <button 
+              onClick={logout}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-red-500 hover:bg-red-600 shadow-2xs transition-all active:scale-[0.98]"
+            >
+              <RiLogoutCircleLine className="text-white text-[14px]" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        ) : (
+          <Link 
+            to="/login" 
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#1a1a1a] hover:bg-[#747E91] shadow-2xs transition-all active:scale-[0.98]"
+          >
+            <RiLoginCircleLine className="text-white text-[14px]" />
+            <span>Login</span>
+          </Link>
+        )}
       </div>
     </header>
   );
