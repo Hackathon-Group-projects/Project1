@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { FaFacebookF, FaGoogle, FaLinkedinIn } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import { generateOTP, sendOtpEmail } from './emailService';
 
 // Secura Custom Slate Toast Styling
@@ -30,6 +32,8 @@ const toastConfig = {
 };
 
 export default function SlidingAuthCard() {
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [isRightActive, setIsRightActive] = useState(false);
 
   // Sign Up State
@@ -98,7 +102,8 @@ export default function SlidingAuthCard() {
 
     if (signUpOtpInput.trim() === generatedSignUpOtp) {
       toast.success('Correct OTP! Account created successfully.', toastConfig);
-      // Optional: Redirect or switch to sign-in view
+      login(signUpEmail);
+      navigate('/');
     } else {
       toast.error('Wrong OTP! Please check your inbox and retry.', toastConfig);
     }
@@ -114,7 +119,8 @@ export default function SlidingAuthCard() {
 
     if (signInOtpInput.trim() === generatedSignInOtp) {
       toast.success('Correct OTP! Signed in successfully.', toastConfig);
-      // Optional: navigate('/dashboard');
+      login(signInEmail);
+      navigate('/');
     } else {
       toast.error('Wrong OTP! Authentication failed.', toastConfig);
     }
