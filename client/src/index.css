@@ -76,3 +76,68 @@
 .terminal-cursor {
   animation: blink 1s infinite;
 }
+@keyframes lineFlow {
+  0% { stroke-dashoffset: 0; opacity: 0.18; }
+  50% { opacity: 0.38; }
+  100% { stroke-dashoffset: 48; opacity: 0.18; }
+}
+
+@keyframes pingWave {
+  0% { r: 4; opacity: 0.75; stroke-width: 1.6; }
+  70% { opacity: 0.25; stroke-width: 1.0; }
+  100% { r: 48; opacity: 0; stroke-width: 0.2; }
+}
+
+@keyframes nodePulse {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  100% { transform: scale(1.25); opacity: 0.95; }
+}
+
+@keyframes spinSlow {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes spinCounter {
+  from { transform: translate(-50%, -50%) rotate(360deg); }
+  to { transform: translate(-50%, -50%) rotate(0deg); }
+}
+
+@keyframes particleDriftA {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(24px, -32px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes particleDriftB {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-28px, 26px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes particleDriftC {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(18px, 30px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes breatheGlow {
+  0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(1.12); opacity: 0.75; }
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-30px, 40px); }
+}
+
+@keyframes heroEntrance {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}

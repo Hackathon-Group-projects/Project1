@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import SlidingAuthCard from '../auth/SlidingAuthCard';
 import { GiCyberEye } from "react-icons/gi"; // ← Added missing import
-
+import Navbar from '../components/Navbar';
 function InteractiveParticles() {
   const canvasRef = useRef(null);
 
@@ -119,6 +119,7 @@ function InteractiveParticles() {
 
 export default function AuthPage() {
   return (
+    
     <div className="min-h-screen w-full flex flex-col justify-center items-center relative overflow-hidden select-none p-4">
       {/* 100% Guaranteed Visible Background Canvas */}
       <InteractiveParticles />

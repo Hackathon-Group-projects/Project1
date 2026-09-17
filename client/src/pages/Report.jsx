@@ -164,7 +164,7 @@ export default function Report() {
             </NavLink>
 
             <NavLink
-              to="headers"
+              to="/headers"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
@@ -175,7 +175,7 @@ export default function Report() {
             </NavLink>
 
             <NavLink
-              to="ssl"
+              to="/ssl"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
@@ -186,7 +186,7 @@ export default function Report() {
             </NavLink>
 
             <NavLink
-              to="cves"
+              to="/cves"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
@@ -197,7 +197,7 @@ export default function Report() {
             </NavLink>
 
             <NavLink
-              to="nuclei"
+              to="/nuclei"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
@@ -208,7 +208,7 @@ export default function Report() {
             </NavLink>
 
             <NavLink
-              to="ai"
+              to="/ai"
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   isActive ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
@@ -224,11 +224,11 @@ export default function Report() {
           {/* Internal Routes */}
           <Routes>
             <Route index element={<OverviewTab />} />
-            <Route path="headers" element={<HeadersTab />} />
-            <Route path="ssl" element={<SslTab />} />
-            <Route path="cves" element={<CvesTab />} />
-            <Route path="nuclei" element={<NucleiTab />} />
-            <Route path="ai" element={<AiFixTab />} />
+            <Route path="/headers" element={<HeadersTab />} />
+            <Route path="/ssl" element={<SslTab />} />
+            <Route path="/cves" element={<CvesTab />} />
+            <Route path="/nuclei" element={<NucleiTab />} />
+            <Route path="/ai" element={<AiFixTab />} />
           </Routes>
 
         </section>
