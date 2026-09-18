@@ -1,6 +1,8 @@
 import Navbar from "./components/Navbar";
 import Hero from './pages/Hero';
 import ScanningPage from "./pages/ScanningPage";
+import HistoryPage from "./pages/HistoryPage";
+import DocsPage from "./pages/DocsPage";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Report from "./pages/Report";
 import AuthPage from "./pages/AuthPage";
@@ -28,6 +30,8 @@ function Layout() {
           <Route index element={<LandingPage />} />
           <Route path="/dash" element={<Hero />} />
           <Route path="/scanning" element={<ScanningPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/docs" element={<DocsPage />} />
           <Route path="/report/*" element={<Report />} />
           <Route path="/login" element={<AuthPage />} />
         </Routes>
