@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 export default function Navbar({ onToggleSidebar }) {
   const { userEmail, logout } = useContext(AuthContext);
   return (
-    <header className="w-full h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md py-11 px-4 sm:px-6 flex items-center justify-between fixed top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+    <header className="w-full h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md py-9 px-4 sm:px-6 flex items-center justify-between fixed top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
       
       {/* Left side: Brand + Mobile Toggle + Breadcrumb */}
       <div className="flex items-center gap-3 sm:gap-4 ">
