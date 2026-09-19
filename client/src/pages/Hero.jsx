@@ -32,11 +32,10 @@ export default function Hero() {
   const handleAuditSubmit = (e) => {
     e.preventDefault();
     if (!url || !confirmed) return;
-    console.log('Running passive audit on:', url);
+    window.location.href = `/scanning?url=${encodeURIComponent(url)}`;
   };
 
   return (
-    // Added radial gradient / dotted background classes here
     <div className='mt-[50px] mx-auto min-h-screen bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] pb-12 px-4'>
       {/* Hero Intro */}
       <div className="text-center max-w-xl mx-auto mb-8 pt-4">
@@ -86,7 +85,7 @@ export default function Hero() {
         </div>
 
         {/* Trigger Button */}
-        <Link to="/scanning"
+        <button
           type="submit"
           disabled={!url || !confirmed}
           className="w-full mt-3 py-2.5 px-4 rounded-lg font-medium text-xs text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-xs"
@@ -94,7 +93,7 @@ export default function Hero() {
           <FiSearch className="text-[14px]" />
           <span>Start Security Audit</span>
           <FiArrowRight className="text-[14px]" />
-        </Link>
+        </button>
       </form>
 
       {/* Demo Links */}

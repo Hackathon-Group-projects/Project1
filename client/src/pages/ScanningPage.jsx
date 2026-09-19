@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   FiGlobe, 
   FiCheck, 
@@ -7,11 +7,72 @@ import {
   FiAlertTriangle 
 } from 'react-icons/fi';
 
-export default function ScanningPage({ 
-  targetUrl = "https://kuchdaalobhai", 
-  scanId = "20253118-Mnnit", 
-  progress = 68 
-}) {
+export default function ScanningPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const targetUrl = searchParams.get('url') || "https://example.com";
+  
+  const [scanId, setScanId] = useState("Initializing...");
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState([`> Initializing passive handshake with ${targetUrl}:443...`]);
+  const [currentStep, setCurrentStep] = useState('Initializing');
+
+  useEffect(() => {
+    let eventSource;
+
+    const startScan = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/scan/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: targetUrl })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        const newScanId = data.scanId;
+        setScanId(newScanId);
+
+        // Open SSE connection
+        eventSource = new EventSource(`http://localhost:5000/api/scan/progress?scanId=${newScanId}`);
+
+        eventSource.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          
+          if (msg.type === 'progress') {
+            setProgress(msg.progress);
+            setCurrentStep(msg.step);
+            setLogs(prev => [...prev, `> [INFO] ${msg.log}`]);
+          } else if (msg.type === 'done') {
+            setProgress(100);
+            setLogs(prev => [...prev, `> [OK] Scan Finished.`]);
+            eventSource.close();
+            // Optional: navigate to report page
+            setTimeout(() => {
+              navigate('/report/' + newScanId); // Ensure you pass scan ID if report page needs it
+            }, 1000);
+          } else if (msg.type === 'error') {
+            setLogs(prev => [...prev, `> [ERROR] ${msg.message}`]);
+            eventSource.close();
+          }
+        };
+
+        eventSource.onerror = (err) => {
+          console.error("SSE Error:", err);
+          eventSource.close();
+        };
+
+      } catch (err) {
+        setLogs(prev => [...prev, `> [ERROR] ${err.message}`]);
+      }
+    };
+
+    startScan();
+
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, [targetUrl, navigate]);
   return (
     <div className="bg-tech-matrix text-zinc-800 font-sans text-[13px] antialiased min-h-screen flex flex-col selection:bg-[#8C95A6] selection:text-white relative">
       
@@ -183,15 +244,22 @@ export default function ScanningPage({
           </div>
 
           <div className="space-y-1.5 overflow-x-auto">
-            <div className="text-zinc-500">&gt; Initializing passive handshake with {targetUrl}:443...</div>
-            <div><span className="text-emerald-400">&gt; [OK]</span> TLS 1.3 Certificate valid until 2025-12-01 <span className="text-emerald-400">✓</span></div>
-            <div><span className="text-cyan-400">&gt; [INFO]</span> Response headers collected (14 total headers evaluated)</div>
-            <div><span className="text-amber-400">&gt; [WARN]</span> Missing: Content-Security-Policy (CSP) flag ⚠️</div>
-            <div><span className="text-[#8C95A6]">&gt; [PROBE]</span> Detecting web software... WordPress 6.2 identified</div>
-            <div className="text-zinc-400 flex items-center gap-1">
-              <span>&gt; Querying OSV.dev registry for WordPress 6.2 vulnerabilities</span>
-              <span className="w-2 h-3.5 bg-[#8C95A6] inline-block terminal-cursor" />
-            </div>
+            {logs.map((log, i) => (
+              <div key={i} className={
+                log.includes('[ERROR]') ? 'text-red-400' : 
+                log.includes('[OK]') ? 'text-emerald-400' : 
+                log.includes('[WARN]') ? 'text-amber-400' : 
+                'text-zinc-400'
+              }>
+                {log}
+              </div>
+            ))}
+            {progress < 100 && (
+              <div className="text-zinc-400 flex items-center gap-1">
+                <span>&gt; Processing...</span>
+                <span className="w-2 h-3.5 bg-[#8C95A6] inline-block animate-pulse" />
+              </div>
+            )}
           </div>
         </div>
 

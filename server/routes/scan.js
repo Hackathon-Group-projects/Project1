@@ -113,4 +113,24 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
   }
 }
 
+// Fetch all previous scans for the history page
+scanRouter.get('/history', async (req, res) => {
+  try {
+    const scans = await Scan.find().sort({ createdAt: -1 });
+    res.json(scans);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch scan history' });
+  }
+});
+
+// Delete a scan history record
+scanRouter.delete('/:id', async (req, res) => {
+  try {
+    await Scan.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Scan deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete scan' });
+  }
+});
+
 module.exports = scanRouter;
