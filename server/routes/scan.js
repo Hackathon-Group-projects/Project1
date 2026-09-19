@@ -62,44 +62,54 @@ scanRouter.get('/progress', (req, res) => {
 
 async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
   try {
-    scanEmitter.emit(scanId, { type: 'progress', step: 'SSL Scan', progress: 20, log: 'Checking SSL...', scanId });
-    const sslScannerOutput = await checkSSL(targetWebsiteUrl);
-
-    scanEmitter.emit(scanId, { type: 'progress', step: 'Headers Scan', progress: 40, log: 'Analyzing HTTP headers...', scanId });
-    const headerScannerOutput = await checkHeaders(targetWebsiteUrl);
-
-    scanEmitter.emit(scanId, { type: 'progress', step: 'Tech Fingerprint', progress: 60, log: 'Fingerprinting tech stack...', scanId });
-    const techScannerOutput = await checkTechStack(targetWebsiteUrl);
-
-    scanEmitter.emit(scanId, { type: 'progress', step: 'CVE Lookup', progress: 80, log: 'Checking CVEs...', scanId });
-    const cveScannerOutput = await lookupCvesForTechStack(techScannerOutput);
-
-    // Run the Nuclei lightweight scanner
-    const nucleiScannerOutput = await runNucleiScan(targetWebsiteUrl);
-
+    scanEmitter.emit(scanId, { type: 'progress', step: 'Initializing', progress: 10, log: 'Starting parallel engines...', scanId });
+    // 1. Start independent scanners simultaneously (Parallel Execution)
+    const sslPromise = checkSSL(targetWebsiteUrl).then(res => {
+      scanEmitter.emit(scanId, { type: 'progress', step: 'SSL', progress: 30, log: 'SSL analysis complete', scanId });
+      return res;
+    });
+    const headersPromise = checkHeaders(targetWebsiteUrl).then(res => {
+      scanEmitter.emit(scanId, { type: 'progress', step: 'Headers', progress: 50, log: 'Header analysis complete', scanId });
+      return res;
+    });
+    const nucleiPromise = runNucleiScan(targetWebsiteUrl).then(res => {
+      scanEmitter.emit(scanId, { type: 'progress', step: 'Nuclei', progress: 70, log: 'Vulnerability scan complete', scanId });
+      return res;
+    });
+    // 2. Tech and CVE are linked (CVE needs Tech output first), so we chain them
+    const techAndCvePromise = checkTechStack(targetWebsiteUrl).then(async (techResult) => {
+      const cveResult = await lookupCvesForTechStack(techResult);
+      scanEmitter.emit(scanId, { type: 'progress', step: 'Tech & CVE', progress: 90, log: 'Tech stack & CVE lookup complete', scanId });
+      return { tech: techResult, cves: cveResult };
+    });
+    // 3. WAIT FOR ALL SCANNERS TO FINISH AT THE SAME TIME 🚀
+    const [sslScannerOutput, headerScannerOutput, nucleiScannerOutput, techAndCveOutput] = await Promise.all([
+      sslPromise,
+      headersPromise,
+      nucleiPromise,
+      techAndCvePromise
+    ]);
+    // 4. Combine results
     const combinedScanResults = {
       ssl: sslScannerOutput,
       headers: headerScannerOutput,
-      tech: techScannerOutput,
-      cves: cveScannerOutput,
+      tech: techAndCveOutput.tech,
+      cves: techAndCveOutput.cves,
       nuclei: nucleiScannerOutput
     };
-
-    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results...', scanId });
-
-    // Persist final report
+    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results to database...', scanId });
+    // Persist final report to MongoDB
     const newScanRecord = new Scan({
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
       rawResults: combinedScanResults
     });
-
     await newScanRecord.save();
     scanEmitter.emit(scanId, { type: 'done', scanId: scanId, log: 'Finished.' });
-
   } catch (error) {
-    scanEmitter.emit(scanId, { type: 'error', scanId: scanId, message: error.message });
+    console.error(`Scan failed for ${scanId}:`, error);
+    scanEmitter.emit(scanId, { type: 'error', scanId: scanId, message: error.message || 'Internal Server Error' });
   }
 }
 
