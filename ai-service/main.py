@@ -119,7 +119,7 @@ async def analyze(scan: ScanInput):
     Input:  ScanInput  (url, ssl, headers, tech, cves, nuclei)
     Output: RemediationOutput  (overallScore, riskLevel, vulnerabilities[], fixes[], priorityActionPlan[])
     """
-    logger.info(f"📥  /analyze  →  {scan.url}")
+    logger.info(f"📥  /analyze  →  {scan.id}")
 
     try:
         # ── Step 1: Extract keywords from scan for RAG query ──
@@ -142,8 +142,8 @@ async def analyze(scan: ScanInput):
         # ── Step 5: Validate with Pydantic + return ──
         result = RemediationOutput(**raw_output)
         logger.info(
-            f"✅  /analyze done → score={result.overallScore}  "
-            f"risk={result.riskLevel}  vulns={len(result.vulnerabilities)}"
+            f"✅  /analyze done → score={result.summary.riskScore}  "
+            f"grade={result.grade}  vulns={len(result.recommendations)}"
         )
         return result
 

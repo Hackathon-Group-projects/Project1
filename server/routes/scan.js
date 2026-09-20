@@ -7,6 +7,8 @@ const { checkHeaders } = require('../services/headerService');
 const { checkTechStack } = require('../services/techService');
 const { lookupCvesForTechStack } = require('../services/cveService');
 const { runNucleiScan } = require('../services/nucleiService');
+const { validateAndCleanUrl } = require('../utils/validator');
+const { generateAiReport } = require('../services/aiService');
 
 const EventEmitter = require('events');
 class ScanEmitter extends EventEmitter { }
@@ -15,8 +17,37 @@ const { v4: uuidv4 } = require('uuid');
 
 // Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
-  const targetUrl = req.body.url;
-  if (!targetUrl) return res.status(400).json({ error: 'Please provide a valid URL to scan.' });
+
+  // URL with proper validation
+  const { isValid, cleanedUrl, error } = validateAndCleanUrl(req.body.url);
+  if (!isValid) return res.status(400).json({ error: error });
+
+  const targetUrl = cleanedUrl; // Use the cleaned, validated URL
+
+  try {
+    const targetHostname = new URL(targetUrl).hostname;
+
+    // 24-hour pre-cache logic
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const cutoffTime = new Date(Date.now() - ONE_DAY_MS);
+
+    // Look for a successful scan of the same hostname within the last 24h
+    const cachedScan = await Scan.findOne({
+      targetHostname: targetHostname,
+      scannedAt: { $gte: cutoffTime },
+      status: 'completed'
+    }).sort({ scannedAt: -1 });
+
+    if (cachedScan) {
+      return res.status(200).json({
+        scanId: cachedScan.scanId,
+        status: 'cached',
+        message: 'Scan results served from cache'
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid URL provided.' });
+  }
 
   try {
     const targetHostname = new URL(targetUrl).hostname;
@@ -120,15 +151,22 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
       cves: techAndCveOutput.cves,
       nuclei: nucleiScannerOutput
     };
-    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results to database...', scanId });
+
+    // Send to Python AI Service for Analysis!
+    scanEmitter.emit(scanId, { type: 'progress', step: 'AI Analysis', progress: 95, log: 'Gemini AI is generating the audit report...', scanId });
+    
+    const finalAiReport = await generateAiReport(combinedScanResults);
+    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 98, log: 'Saving results to database...', scanId });
     // Persist final report to MongoDB
     const newScanRecord = new Scan({
       scanId: scanId,
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
-      rawResults: combinedScanResults
+      rawResults: combinedScanResults,
+      aiReport: finalAiReport  // <-- AI report Database me save ho raha hai
     });
+    
     await newScanRecord.save();
     scanEmitter.emit(scanId, { type: 'done', scanId: scanId, log: 'Finished.' });
   } catch (error) {
@@ -154,6 +192,44 @@ scanRouter.delete('/:id', async (req, res) => {
     res.json({ message: 'Scan deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete scan' });
+  }
+});
+
+// GET /api/scan/history
+// Returns the last 10 completed scans (most recent first)
+scanRouter.get('/history', async (req, res) => {
+  try {
+    // Fetch last 10 scans from MongoDB, sorted by newest first
+    // .select() avoids sending heavy rawResults in the list view
+    const recentScans = await Scan.find({ status: 'completed' })
+      .sort({ createdAt: -1 })       // Newest scan first
+      .limit(10)                      // Only last 10 scans
+      .select('scanId targetUrl targetHostname status createdAt'); // Only send lightweight fields
+    res.status(200).json({
+      totalScans: recentScans.length,
+      scans: recentScans
+    });
+  } catch (error) {
+    console.error('Failed to fetch scan history:', error.message);
+    res.status(500).json({ error: 'Could not retrieve scan history.' });
+  }
+});
+
+
+// GET /api/scan/result/:scanId
+// Returns the full detailed result of one specific scan
+scanRouter.get('/result/:scanId', async (req, res) => {
+  try {
+    const { scanId } = req.params;
+    // Find the scan in MongoDB using the scanId from the URL
+    const scanRecord = await Scan.findOne({ scanId : scanId });
+    if (!scanRecord) {
+      return res.status(404).json({ error: 'Scan not found. It may have expired or never existed.' });
+    }
+    res.status(200).json(scanRecord);
+  } catch (error) {
+    console.error('Failed to fetch scan result:', error.message);
+    res.status(500).json({ error: 'Could not retrieve scan result.' });
   }
 });
 
