@@ -13,7 +13,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Implementation of Rate Limiting (Phase 3 Requirement)
+// Implementation of Rate Limiting 
 const apiLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 100, // limit each IP to 100 requests per windowMs

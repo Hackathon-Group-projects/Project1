@@ -2,14 +2,12 @@ const express = require('express');
 const scanRouter = express.Router();
 const Scan = require('../models/Scan');
 
-// Import core security scanning services
 const { checkSSL } = require('../services/sslService');
 const { checkHeaders } = require('../services/headerService');
 const { checkTechStack } = require('../services/techService');
 const { lookupCvesForTechStack } = require('../services/cveService');
 const { runNucleiScan } = require('../services/nucleiService');
 
-// Setup event emitter for SSE background progress streaming
 const EventEmitter = require('events');
 class ScanEmitter extends EventEmitter { }
 const scanEmitter = new ScanEmitter();
