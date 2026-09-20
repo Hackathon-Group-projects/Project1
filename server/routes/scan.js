@@ -2,15 +2,14 @@ const express = require('express');
 const scanRouter = express.Router();
 const Scan = require('../models/Scan');
 
-// Import core security scanning services
 const { checkSSL } = require('../services/sslService');
 const { checkHeaders } = require('../services/headerService');
 const { checkTechStack } = require('../services/techService');
 const { lookupCvesForTechStack } = require('../services/cveService');
 const { runNucleiScan } = require('../services/nucleiService');
 const { validateAndCleanUrl } = require('../utils/validator');
+const { generateAiReport } = require('../services/aiService');
 
-// Setup event emitter for SSE background progress streaming
 const EventEmitter = require('events');
 class ScanEmitter extends EventEmitter { }
 const scanEmitter = new ScanEmitter();
@@ -24,6 +23,31 @@ scanRouter.post('/start', async (req, res) => {
   if (!isValid) return res.status(400).json({ error: error });
 
   const targetUrl = cleanedUrl; // Use the cleaned, validated URL
+
+  try {
+    const targetHostname = new URL(targetUrl).hostname;
+
+    // 24-hour pre-cache logic
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const cutoffTime = new Date(Date.now() - ONE_DAY_MS);
+
+    // Look for a successful scan of the same hostname within the last 24h
+    const cachedScan = await Scan.findOne({
+      targetHostname: targetHostname,
+      scannedAt: { $gte: cutoffTime },
+      status: 'completed'
+    }).sort({ scannedAt: -1 });
+
+    if (cachedScan) {
+      return res.status(200).json({
+        scanId: cachedScan.scanId,
+        status: 'cached',
+        message: 'Scan results served from cache'
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid URL provided.' });
+  }
 
   const scanId = uuidv4();
 
@@ -102,15 +126,22 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
       cves: techAndCveOutput.cves,
       nuclei: nucleiScannerOutput
     };
-    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results to database...', scanId });
+
+    // Send to Python AI Service for Analysis!
+    scanEmitter.emit(scanId, { type: 'progress', step: 'AI Analysis', progress: 95, log: 'Gemini AI is generating the audit report...', scanId });
+    
+    const finalAiReport = await generateAiReport(combinedScanResults);
+    scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 98, log: 'Saving results to database...', scanId });
     // Persist final report to MongoDB
     const newScanRecord = new Scan({
-      scanId : scanId,
+      scanId: scanId,
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
-      rawResults: combinedScanResults
+      rawResults: combinedScanResults,
+      aiReport: finalAiReport  // <-- AI report Database me save ho raha hai
     });
+    
     await newScanRecord.save();
     scanEmitter.emit(scanId, { type: 'done', scanId: scanId, log: 'Finished.' });
   } catch (error) {

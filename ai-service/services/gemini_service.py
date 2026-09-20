@@ -25,7 +25,7 @@ class GeminiService:
         # Flash model for structured JSON remediation reports
         # response_mime_type forces Gemini to return valid JSON — no hallucinated prose
         self._flash = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-3.7-flash",
             generation_config=genai.GenerationConfig(
                 response_mime_type="application/json",
                 temperature=0.2,        # low temp = precise, deterministic
@@ -35,7 +35,7 @@ class GeminiService:
 
         # Flash model for conversational chat answers (Ask AI sidebar)
         self._chat = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-3.7-flash",
             generation_config=genai.GenerationConfig(
                 temperature=0.3,
                 max_output_tokens=2048,

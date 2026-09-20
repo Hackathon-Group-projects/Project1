@@ -12,7 +12,7 @@ async function runNucleiScan(targetUrl) {
     'exposures'         // Checks for leaked sensitive files (e.g., .env)
   ];
 
-  const templateFlags = safeTemplates.map(t => `-t ${t}`).join(' ');
+  const templateFlags = safeTemplates.map(t => `-tags ${t}`).join(' ');
 
   try {
     // Construct command: nuclei -u https://example.com -t misconfiguration -t exposures -json -silent

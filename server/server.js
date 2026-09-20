@@ -5,12 +5,23 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoose = require('mongoose');
 const { exec } = require('child_process');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Implementation of Rate Limiting 
+const apiLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 24 hours.'
+});
+
+// Apply rate limiter to all API routes
+app.use('/api/', apiLimiter);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Atlas connected successfully'))
@@ -19,7 +30,8 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
-// Register the main scan route (add this after app.use(express.json()))
+// Register API routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/scan', require('./routes/scan'));
 
 
@@ -41,7 +53,7 @@ app.listen(PORT, () => {
   // Jaise hi server on hoga, ye background mein Nuclei ke rules update kar dega
   // Isse app start hone mein time nahi lagega aur scanner humesha latest rahega!
   console.log('⏳ Checking for Nuclei template updates in the background...');
-  
+
   exec('nuclei -update-templates', (error, stdout, stderr) => {
     if (error) {
       console.warn('Could not update Nuclei templates. Will use existing ones.');
