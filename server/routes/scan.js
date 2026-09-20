@@ -8,6 +8,7 @@ const { checkHeaders } = require('../services/headerService');
 const { checkTechStack } = require('../services/techService');
 const { lookupCvesForTechStack } = require('../services/cveService');
 const { runNucleiScan } = require('../services/nucleiService');
+const { validateAndCleanUrl } = require('../utils/validator');
 
 // Setup event emitter for SSE background progress streaming
 const EventEmitter = require('events');
@@ -17,8 +18,12 @@ const { v4: uuidv4 } = require('uuid');
 
 // Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
-  const targetUrl = req.body.url;
-  if (!targetUrl) return res.status(400).json({ error: 'Please provide a valid URL to scan.' });
+
+  // URL with proper validation
+  const { isValid, cleanedUrl, error } = validateAndCleanUrl(req.body.url);
+  if (!isValid) return res.status(400).json({ error: error });
+
+  const targetUrl = cleanedUrl; // Use the cleaned, validated URL
 
   const scanId = uuidv4();
 
@@ -100,6 +105,7 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
     scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 95, log: 'Saving results to database...', scanId });
     // Persist final report to MongoDB
     const newScanRecord = new Scan({
+      scanId : scanId,
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
@@ -130,6 +136,44 @@ scanRouter.delete('/:id', async (req, res) => {
     res.json({ message: 'Scan deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete scan' });
+  }
+});
+
+// GET /api/scan/history
+// Returns the last 10 completed scans (most recent first)
+scanRouter.get('/history', async (req, res) => {
+  try {
+    // Fetch last 10 scans from MongoDB, sorted by newest first
+    // .select() avoids sending heavy rawResults in the list view
+    const recentScans = await Scan.find({ status: 'completed' })
+      .sort({ createdAt: -1 })       // Newest scan first
+      .limit(10)                      // Only last 10 scans
+      .select('scanId targetUrl targetHostname status createdAt'); // Only send lightweight fields
+    res.status(200).json({
+      totalScans: recentScans.length,
+      scans: recentScans
+    });
+  } catch (error) {
+    console.error('Failed to fetch scan history:', error.message);
+    res.status(500).json({ error: 'Could not retrieve scan history.' });
+  }
+});
+
+
+// GET /api/scan/result/:scanId
+// Returns the full detailed result of one specific scan
+scanRouter.get('/result/:scanId', async (req, res) => {
+  try {
+    const { scanId } = req.params;
+    // Find the scan in MongoDB using the scanId from the URL
+    const scanRecord = await Scan.findOne({ scanId : scanId });
+    if (!scanRecord) {
+      return res.status(404).json({ error: 'Scan not found. It may have expired or never existed.' });
+    }
+    res.status(200).json(scanRecord);
+  } catch (error) {
+    console.error('Failed to fetch scan result:', error.message);
+    res.status(500).json({ error: 'Could not retrieve scan result.' });
   }
 });
 

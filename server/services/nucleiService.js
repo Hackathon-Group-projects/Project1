@@ -17,7 +17,7 @@ async function runNucleiScan(targetUrl) {
   try {
     // Construct command: nuclei -u https://example.com -t misconfiguration -t exposures -json -silent
     // Adding -rl 10 and -c 5 to keep the scan polite and avoid IP bans
-    const commandToRun = `nuclei -u ${targetUrl} ${templateFlags} -rl 10 -c 5 -json -silent`;
+    const commandToRun = `nuclei -u ${targetUrl} ${templateFlags} -rl 10 -c 5 -jsonl -silent`;
     
     // Execute command with a 30-second hard timeout
     const { stdout } = await executeTerminalCommand(commandToRun, { timeout: 30000 });
@@ -27,11 +27,21 @@ async function runNucleiScan(targetUrl) {
     }
 
     // Nuclei prints one JSON object per line, hum unhe split aur parse kar rahe hain
+    //NAYA CODE (non-JSON lines ko silently skip karo):
     const rawFindings = stdout
-      .trim()
-      .split('\n')
-      .filter(line => line !== '')
-      .map(line => JSON.parse(line));
+    .trim()
+    .split('\n')
+    .filter(line => line !== '')
+    .reduce((validFindings, line) => {
+        try {
+        // Try to parse this line as JSON
+        validFindings.push(JSON.parse(line));
+        } catch (parseError) {
+        // If this line is not valid JSON (e.g., a Nuclei info message), just skip it
+        console.warn('Skipping non-JSON Nuclei output line:', line.substring(0, 50));
+        }
+        return validFindings;
+    }, []);
       
     // Humare MongoDB schema ke hisaab se data ko format kar rahe hain
     const formattedFindings = rawFindings.map(finding => ({

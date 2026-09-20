@@ -22,6 +22,18 @@ mongoose.connect(process.env.MONGO_URI)
 // Register the main scan route (add this after app.use(express.json()))
 app.use('/api/scan', require('./routes/scan'));
 
+
+// Global error handler - catches any unhandled errors in the entire app
+// Without this, Express returns ugly HTML errors instead of clean JSON
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err.message);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'Something went wrong on our end.'
+  });
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

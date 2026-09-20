@@ -1,5 +1,5 @@
 // server/services/sslService.js
-const sslChecker = require('ssl-checker');
+const {sslChecker} = require('ssl-checker');
 
 async function checkSSL(hostname) {
   try {
