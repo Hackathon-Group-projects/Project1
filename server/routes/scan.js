@@ -49,6 +49,31 @@ scanRouter.post('/start', async (req, res) => {
     return res.status(400).json({ error: 'Invalid URL provided.' });
   }
 
+  try {
+    const targetHostname = new URL(targetUrl).hostname;
+
+    // 24-hour pre-cache logic
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const cutoffTime = new Date(Date.now() - ONE_DAY_MS);
+
+    // Look for a successful scan of the same hostname within the last 24h
+    const cachedScan = await Scan.findOne({
+      targetHostname: targetHostname,
+      scannedAt: { $gte: cutoffTime },
+      status: 'completed'
+    }).sort({ scannedAt: -1 });
+
+    if (cachedScan) {
+      return res.status(200).json({
+        scanId: cachedScan.scanId,
+        status: 'cached',
+        message: 'Scan results served from cache'
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid URL provided.' });
+  }
+
   const scanId = uuidv4();
 
   res.status(200).json({
