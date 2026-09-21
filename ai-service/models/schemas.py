@@ -98,6 +98,7 @@ class RemediationOutput(BaseModel):
 class ChatRequest(BaseModel):
     question: str
     scan_url: Optional[str] = None
+    report_context: Optional[str] = None
 
 class ChatResponse(BaseModel):
     answer: str
