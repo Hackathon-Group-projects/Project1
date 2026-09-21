@@ -9,6 +9,8 @@ const { lookupCvesForTechStack } = require('../services/cveService');
 const { runNucleiScan } = require('../services/nucleiService');
 const { validateAndCleanUrl } = require('../utils/validator');
 const { generateAiReport } = require('../services/aiService');
+const { checkCache } = require('../services/cacheService');
+const jwt = require('jsonwebtoken');
 
 const EventEmitter = require('events');
 class ScanEmitter extends EventEmitter { }
@@ -26,9 +28,12 @@ scanRouter.post('/start', async (req, res) => {
 
   try {
     const targetHostname = new URL(targetUrl).hostname;
-  } catch (error) {
+  } catch (err) {
     return res.status(400).json({ error: 'Invalid URL provided.' });
   }
+
+  // Identify if a user is logged in natively via request body (per blueprint API design)
+  const userId = req.body.userId || null;
 
   const scanId = uuidv4();
 
@@ -38,9 +43,30 @@ scanRouter.post('/start', async (req, res) => {
     message: 'Scan initialized successfully'
   });
 
-  // Run the sequence in the background
-  runScanSequenceSSE(scanId, targetUrl).catch(err => {
+  // Run the sequence in the background passing the userId
+  runScanSequenceSSE(scanId, targetUrl, userId).catch(err => {
     console.error(`Background scan error for ${scanId}:`, err);
+  });
+});
+
+// GET /api/scan/cache-check
+// Endpoint to verify if a site was already scanned in the last 24h
+scanRouter.get('/cache-check', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'url query parameter is required.' });
+
+  const cachedScan = await checkCache(url);
+
+  if (cachedScan) {
+    return res.status(200).json({
+      cached: true,
+      scanId: cachedScan.scanId
+    });
+  }
+
+  return res.status(200).json({
+    cached: false,
+    scanId: null
   });
 });
 
@@ -70,7 +96,7 @@ scanRouter.get('/progress', (req, res) => {
   });
 });
 
-async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
+async function runScanSequenceSSE(scanId, targetWebsiteUrl, userId = null) {
   try {
     scanEmitter.emit(scanId, { type: 'progress', step: 'Initializing', progress: 10, log: 'Starting parallel engines...', scanId });
     // 1. Start independent scanners simultaneously (Parallel Execution)
@@ -110,19 +136,20 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
 
     // Send to Python AI Service for Analysis!
     scanEmitter.emit(scanId, { type: 'progress', step: 'AI Analysis', progress: 95, log: 'Gemini AI is generating the audit report...', scanId });
-    
+
     const finalAiReport = await generateAiReport(combinedScanResults);
     scanEmitter.emit(scanId, { type: 'progress', step: 'Finalizing', progress: 98, log: 'Saving results to database...', scanId });
     // Persist final report to MongoDB
     const newScanRecord = new Scan({
       scanId: scanId,
+      userId: userId, // Bind the scan to the user's account if authenticated
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
       rawResults: combinedScanResults,
       aiReport: finalAiReport  // <-- AI report Database me save ho raha hai
     });
-    
+
     await newScanRecord.save();
     scanEmitter.emit(scanId, { type: 'done', scanId: scanId, log: 'Finished.' });
   } catch (error) {
@@ -131,33 +158,30 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
   }
 }
 
-// Fetch all previous scans for the history page
-scanRouter.get('/history', async (req, res) => {
-  try {
-    const scans = await Scan.find().sort({ createdAt: -1 });
-    res.json(scans);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch scan history' });
+// 🛡️ JWT Authorization Middleware
+function auth(req, res, next) {
+  const authHeader = req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token, authorization denied' });
   }
-});
 
-// Delete a scan history record
-scanRouter.delete('/:id', async (req, res) => {
+  const token = authHeader.split(' ')[1];
   try {
-    await Scan.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Scan deleted successfully' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-dev');
+    req.user = decoded;
+    next();
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete scan' });
+    res.status(401).json({ error: 'Token is not valid' });
   }
-});
+}
 
 // GET /api/scan/history
-// Returns the last 10 completed scans (most recent first)
-scanRouter.get('/history', async (req, res) => {
+// Returns the last 10 completed scans ONLY for the logged-in user
+scanRouter.get('/history', auth, async (req, res) => {
   try {
-    // Fetch last 10 scans from MongoDB, sorted by newest first
+    // Fetch last 10 scans from MongoDB tied to the authenticated user ID
     // .select() avoids sending heavy rawResults in the list view
-    const recentScans = await Scan.find({ status: 'completed' })
+    const recentScans = await Scan.find({ status: 'completed', userId: req.user.id })
       .sort({ createdAt: -1 })       // Newest scan first
       .limit(10)                      // Only last 10 scans
       .select('scanId targetUrl targetHostname status createdAt rawResults'); // Include rawResults to calculate score
@@ -175,7 +199,7 @@ scanRouter.get('/result/:scanId', async (req, res) => {
   try {
     const { scanId } = req.params;
     // Find the scan in MongoDB using the scanId from the URL
-    const scanRecord = await Scan.findOne({ scanId : scanId });
+    const scanRecord = await Scan.findOne({ scanId: scanId });
     if (!scanRecord) {
       return res.status(404).json({ error: 'Scan not found. It may have expired or never existed.' });
     }
