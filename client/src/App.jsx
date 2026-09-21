@@ -32,7 +32,8 @@ function Layout() {
           <Route path="/scanning" element={<ScanningPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/docs" element={<DocsPage />} />
-          <Route path="/report/*" element={<Report />} />
+          <Route path="/report/:id" element={<Report />} />
+          <Route path="/report" element={<Report />} />
           <Route path="/login" element={<AuthPage />} />
         </Routes>
       </div>

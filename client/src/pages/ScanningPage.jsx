@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   FiGlobe, 
@@ -6,32 +6,75 @@ import {
   FiLoader, 
   FiAlertTriangle 
 } from 'react-icons/fi';
+import { AuthContext } from '../context/AuthContext';
 
 export default function ScanningPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const targetUrl = searchParams.get('url') || "https://example.com";
+  const targetUrl = searchParams.get('url');
+  const { userEmail } = useContext(AuthContext);
   
   const [scanId, setScanId] = useState("Initializing...");
   const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState([`> Initializing passive handshake with ${targetUrl}:443...`]);
+  const [logs, setLogs] = useState(targetUrl ? [`> Initializing passive handshake with ${targetUrl}:443...`] : []);
   const [currentStep, setCurrentStep] = useState('Initializing');
 
   useEffect(() => {
     let eventSource;
+
+    if (!userEmail) {
+      setCurrentStep('NotFound');
+      return;
+    }
+
+    if (!targetUrl) {
+      if (userEmail) {
+        const fetchHistory = async () => {
+          try {
+            const res = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const latestScan = data[0].scanId;
+              localStorage.setItem('lastScanId', latestScan);
+              navigate(`/report/${latestScan}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error(e);
+          }
+          setCurrentStep('NotFound');
+        };
+        fetchHistory();
+        return;
+      }
+
+      setCurrentStep('NotFound');
+      return;
+    }
 
     const startScan = async () => {
       try {
         const res = await fetch('http://localhost:5000/api/scan/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: targetUrl })
+          body: JSON.stringify({ url: targetUrl, userEmail })
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
         const newScanId = data.scanId;
         setScanId(newScanId);
+        localStorage.setItem('lastScanId', newScanId);
+        localStorage.setItem('lastScanUrl', targetUrl);
+
+        if (data.status === 'cached') {
+          setProgress(100);
+          setLogs(prev => [...prev, `> [INFO] Scan results served from cache.`, `> [OK] Scan Finished.`]);
+          setTimeout(() => {
+            navigate('/report/' + newScanId);
+          }, 1000);
+          return;
+        }
 
         // Open SSE connection
         eventSource = new EventSource(`http://localhost:5000/api/scan/progress?scanId=${newScanId}`);
@@ -72,7 +115,7 @@ export default function ScanningPage() {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [targetUrl, navigate]);
+  }, [targetUrl, navigate, userEmail]);
   return (
     <div className="bg-tech-matrix text-zinc-800 font-sans text-[13px] antialiased min-h-screen flex flex-col selection:bg-[#8C95A6] selection:text-white relative">
       
@@ -85,6 +128,32 @@ export default function ScanningPage() {
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col justify-center">
 
+        {!targetUrl || currentStep === 'NotFound' ? (
+          <div className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col items-center justify-center mt-20">
+            <div className="bg-white border border-rose-50 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center justify-center text-center w-[400px]">
+              <div className="mb-4">
+                <svg className="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                Scan Report Not Found
+              </h3>
+              <p className="text-slate-400 text-sm mb-8">
+                No target URL provided.
+              </p>
+              <div className="flex items-center gap-3 w-full justify-center">
+                <Link to="/" className="px-5 py-2.5 bg-[#0f172a] text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  Run New Scan
+                </Link>
+                <Link to="/history" className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-all active:scale-[0.98]">
+                  View History
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Target Domain Card */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -148,86 +217,64 @@ export default function ScanningPage() {
           </div>
 
           <div className="space-y-3 font-sans">
-            {/* Step 1: SSL Check */}
-            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                  <FiCheck className="text-[14px] stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-semibold text-zinc-800">SSL/TLS Certificate Check</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                [Done]
-              </span>
-            </div>
+            {[
+              { id: 1, name: 'SSL/TLS Certificate Check', threshold: 30, start: 10 },
+              { id: 2, name: 'HTTP Security Headers Scan', threshold: 50, start: 10 },
+              { id: 3, name: 'Tech Stack Fingerprinting', threshold: 90, start: 10 },
+              { id: 4, name: 'CVE / Known Vulnerability Lookup', threshold: 90, start: 10 },
+              { id: 5, name: 'Nuclei Lightweight Scan', threshold: 70, start: 10 },
+              { id: 6, name: 'AI-Powered Analysis', threshold: 98, start: 90 }
+            ].map(step => {
+              const isDone = progress >= step.threshold;
+              const isRunning = progress >= step.start && progress < step.threshold;
+              const isWaiting = progress < step.start;
 
-            {/* Step 2: HTTP Headers */}
-            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                  <FiCheck className="text-[14px] stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-semibold text-zinc-800">HTTP Security Headers Scan</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                [Done]
-              </span>
-            </div>
-
-            {/* Step 3: Tech Fingerprinting (Active) */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8C95A6]/20 text-[#5B6475] flex items-center justify-center shrink-0">
-                  <FiLoader className="text-[14px] animate-spin" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-zinc-950">Tech Stack Fingerprinting...</span>
-                  <div className="text-[10px] text-[#5B6475] font-mono">Analyzing HTTP responses & generator meta</div>
-                </div>
-              </div>
-              <span className="px-2.5 py-0.5 text-[11px] font-mono font-semibold rounded-md bg-[#8C95A6] text-white shadow-2xs">
-                [Running]
-              </span>
-            </div>
-
-            {/* Step 4: CVE Lookup */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">CVE / Known Vulnerability Lookup</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
-
-            {/* Step 5: Nuclei Scan */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">Nuclei Lightweight Scan</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
-
-            {/* Step 6: AI Analysis */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">AI-Powered Analysis</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
+              if (isDone) {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FiCheck className="text-[14px] stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-semibold text-zinc-800">{step.name}</span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      [Done]
+                    </span>
+                  </div>
+                );
+              } else if (isRunning) {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#8C95A6]/20 text-[#5B6475] flex items-center justify-center shrink-0">
+                        <FiLoader className="text-[14px] animate-spin" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-zinc-950">{step.name}...</span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 text-[11px] font-mono font-semibold rounded-md bg-[#8C95A6] text-white shadow-2xs">
+                      [Running]
+                    </span>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2 rounded-xl opacity-60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
+                        ⏸
+                      </div>
+                      <span className="text-xs font-medium text-zinc-600">{step.name}</span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                      [Waiting]
+                    </span>
+                  </div>
+                );
+              }
+            })}
           </div>
         </div>
 
@@ -269,6 +316,8 @@ export default function ScanningPage() {
           <span className="font-medium">Please don't close this tab while real-time diagnostics are executing.</span>
         </div>
 
+        </>
+        )}
       </main>
     </div>
   );

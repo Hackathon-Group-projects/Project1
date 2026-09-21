@@ -47,20 +47,42 @@ export default function SlidingAuthCard() {
 
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
   const [signInOtpInput, setSignInOtpInput] = useState('');
   const [generatedSignInOtp, setGeneratedSignInOtp] = useState(null);
   const [isSignInOtpSent, setIsSignInOtpSent] = useState(false);
   const [signInBtnText, setSignInBtnText] = useState('Send OTP');
 
-  // Handle OTP Trigger with toast.promise
+  // Handle OTP Trigger with DB Check
   const handleSendOtp = async (email, isSignUp) => {
-    if (!email.trim()) {
-      toast.error('Please enter your email first!');
-      return;
-    }
-    if (!email.includes('@')) {
+    if (!email.trim() || !email.includes('@')) {
       toast.error('Please enter a valid email address.');
       return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      
+      if (isSignUp && data.exists) {
+        toast.error('You already have an account! Switching to Sign In.', toastConfig);
+        setIsRightActive(false); // Switch to Sign In
+        setSignInEmail(email);
+        return;
+      }
+      
+      if (!isSignUp && !data.exists) {
+        toast.error('No account found! Switching to Sign Up.', toastConfig);
+        setIsRightActive(true); // Switch to Sign Up
+        setSignUpEmail(email);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to check user status', err);
     }
 
     const newOtp = generateOTP();
@@ -71,7 +93,6 @@ export default function SlidingAuthCard() {
     setBtnText('Sending...');
     setStoredOtp(newOtp);
 
-    // Using toast.promise for sleek loading -> success/error states
     await toast.promise(
       sendOtpEmail(email, newOtp),
       {
@@ -83,7 +104,6 @@ export default function SlidingAuthCard() {
           return `Verification OTP sent to ${email}`;
         },
         error: (err) => {
-          console.error('EmailJS Error:', err);
           setBtnText('Send OTP');
           return 'Failed to send OTP. Check email service configuration.';
         },
@@ -93,36 +113,58 @@ export default function SlidingAuthCard() {
   };
 
   // Sign Up Form Submit
-  const onSignUpSubmit = (e) => {
+  const onSignUpSubmit = async (e) => {
     e.preventDefault();
     if (!signUpOtpInput.trim()) {
       toast.error('Please enter the OTP sent to your email!', toastConfig);
       return;
     }
-
-    if (signUpOtpInput.trim() === generatedSignUpOtp) {
-      toast.success('Correct OTP! Account created successfully.', toastConfig);
-      login(signUpEmail);
-      navigate('/');
-    } else {
+    if (signUpOtpInput.trim() !== generatedSignUpOtp) {
       toast.error('Wrong OTP! Please check your inbox and retry.', toastConfig);
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signUpEmail, password: signUpPassword, name: signUpName })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success('Account created successfully!', toastConfig);
+        login(data.user.email, data.user.name); // or login(data.token) depending on your auth provider
+        navigate('/');
+      } else {
+        toast.error(data.error || 'Registration failed', toastConfig);
+      }
+    } catch (err) {
+      toast.error('Server error during registration', toastConfig);
     }
   };
 
   // Sign In Form Submit
-  const onSignInSubmit = (e) => {
+  const onSignInSubmit = async (e) => {
     e.preventDefault();
-    if (!signInOtpInput.trim()) {
-      toast.error('Please enter your verification OTP to continue!', toastConfig);
-      return;
-    }
 
-    if (signInOtpInput.trim() === generatedSignInOtp) {
-      toast.success('Correct OTP! Signed in successfully.', toastConfig);
-      login(signInEmail);
-      navigate('/');
-    } else {
-      toast.error('Wrong OTP! Authentication failed.', toastConfig);
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signInEmail, password: signInPassword })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success('Signed in successfully!', toastConfig);
+        login(data.user.email, data.user.name);
+        navigate('/');
+      } else {
+        toast.error(data.error || 'Invalid credentials', toastConfig);
+      }
+    } catch (err) {
+      toast.error('Server error during login', toastConfig);
     }
   };
 
@@ -279,33 +321,18 @@ export default function SlidingAuthCard() {
             className="bg-gray-100 border border-transparent px-4 py-3 my-1 w-full rounded-lg text-xs outline-none focus:border-[#1a1a1a] focus:bg-white transition-all"
           />
 
-          {/* Sign-In OTP Row */}
-          <div className="flex w-full items-center justify-between gap-2.5 my-1">
-            <input
-              type="text"
-              placeholder="Enter 4-digit OTP"
-              value={signInOtpInput}
-              onChange={(e) => setSignInOtpInput(e.target.value)}
-              disabled={!isSignInOtpSent}
-              required
-              className="bg-gray-100 border border-transparent px-4 py-3 w-full rounded-lg text-xs font-mono outline-none focus:border-[#1a1a1a] focus:bg-white disabled:bg-gray-100/60 disabled:cursor-not-allowed transition-all m-0"
-            />
-            <button
-              type="button"
-              onClick={() => handleSendOtp(signInEmail, false)}
-              className="px-4 py-3 m-0 rounded-lg bg-[#1a1a1a] text-white text-xs font-bold whitespace-nowrap border border-[#1a1a1a] hover:shadow-[0_4px_15px_rgba(26,26,26,0.4)] active:scale-95 transition-all cursor-pointer"
-            >
-              {signInBtnText}
-            </button>
-          </div>
+          <input
+            type="password"
+            placeholder="Password"
+            value={signInPassword}
+            onChange={(e) => setSignInPassword(e.target.value)}
+            required
+            className="bg-gray-100 border border-transparent px-4 py-3 my-1 w-full rounded-lg text-xs outline-none focus:border-[#1a1a1a] focus:bg-white transition-all"
+          />
 
           <a
-            href="#forgot"
-            onClick={(e) => {
-              e.preventDefault();
-              toast('Password reset link has been dispatched to administrators.', toastConfig);
-            }}
-            className="text-xs text-gray-600 hover:text-[#1a1a1a] my-3 transition-colors"
+            href="#"
+            className="text-gray-500 text-xs mt-3 mb-2 hover:text-[#1a1a1a] underline decoration-gray-300 underline-offset-2 transition-all"
           >
             Forgot your password?
           </a>

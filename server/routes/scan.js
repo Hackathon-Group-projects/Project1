@@ -15,63 +15,28 @@ class ScanEmitter extends EventEmitter { }
 const scanEmitter = new ScanEmitter();
 const { v4: uuidv4 } = require('uuid');
 
+const User = require('../models/User');
+
 // Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
+  const { url, userEmail } = req.body;
 
   // URL with proper validation
-  const { isValid, cleanedUrl, error } = validateAndCleanUrl(req.body.url);
+  const { isValid, cleanedUrl, error } = validateAndCleanUrl(url);
   if (!isValid) return res.status(400).json({ error: error });
 
   const targetUrl = cleanedUrl; // Use the cleaned, validated URL
 
   try {
     const targetHostname = new URL(targetUrl).hostname;
-
-    // 24-hour pre-cache logic
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    const cutoffTime = new Date(Date.now() - ONE_DAY_MS);
-
-    // Look for a successful scan of the same hostname within the last 24h
-    const cachedScan = await Scan.findOne({
-      targetHostname: targetHostname,
-      scannedAt: { $gte: cutoffTime },
-      status: 'completed'
-    }).sort({ scannedAt: -1 });
-
-    if (cachedScan) {
-      return res.status(200).json({
-        scanId: cachedScan.scanId,
-        status: 'cached',
-        message: 'Scan results served from cache'
-      });
-    }
   } catch (error) {
     return res.status(400).json({ error: 'Invalid URL provided.' });
   }
 
-  try {
-    const targetHostname = new URL(targetUrl).hostname;
-
-    // 24-hour pre-cache logic
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    const cutoffTime = new Date(Date.now() - ONE_DAY_MS);
-
-    // Look for a successful scan of the same hostname within the last 24h
-    const cachedScan = await Scan.findOne({
-      targetHostname: targetHostname,
-      scannedAt: { $gte: cutoffTime },
-      status: 'completed'
-    }).sort({ scannedAt: -1 });
-
-    if (cachedScan) {
-      return res.status(200).json({
-        scanId: cachedScan.scanId,
-        status: 'cached',
-        message: 'Scan results served from cache'
-      });
-    }
-  } catch (error) {
-    return res.status(400).json({ error: 'Invalid URL provided.' });
+  let userId = null;
+  if (userEmail) {
+    const user = await User.findOne({ email: userEmail });
+    if (user) userId = user._id;
   }
 
   const scanId = uuidv4();
@@ -83,7 +48,7 @@ scanRouter.post('/start', async (req, res) => {
   });
 
   // Run the sequence in the background
-  runScanSequenceSSE(scanId, targetUrl).catch(err => {
+  runScanSequenceSSE(scanId, targetUrl, userId).catch(err => {
     console.error(`Background scan error for ${scanId}:`, err);
   });
 });
@@ -114,7 +79,7 @@ scanRouter.get('/progress', (req, res) => {
   });
 });
 
-async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
+async function runScanSequenceSSE(scanId, targetWebsiteUrl, userId) {
   try {
     scanEmitter.emit(scanId, { type: 'progress', step: 'Initializing', progress: 10, log: 'Starting parallel engines...', scanId });
     // 1. Start independent scanners simultaneously (Parallel Execution)
@@ -160,6 +125,7 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
     // Persist final report to MongoDB
     const newScanRecord = new Scan({
       scanId: scanId,
+      userId: userId,
       targetUrl: targetWebsiteUrl,
       targetHostname: new URL(targetWebsiteUrl).hostname,
       status: 'completed',
@@ -175,16 +141,6 @@ async function runScanSequenceSSE(scanId, targetWebsiteUrl) {
   }
 }
 
-// Fetch all previous scans for the history page
-scanRouter.get('/history', async (req, res) => {
-  try {
-    const scans = await Scan.find().sort({ createdAt: -1 });
-    res.json(scans);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch scan history' });
-  }
-});
-
 // Delete a scan history record
 scanRouter.delete('/:id', async (req, res) => {
   try {
@@ -196,19 +152,28 @@ scanRouter.delete('/:id', async (req, res) => {
 });
 
 // GET /api/scan/history
-// Returns the last 10 completed scans (most recent first)
+// Returns the completed scans (most recent first) for a specific user, or all if no user provided
 scanRouter.get('/history', async (req, res) => {
   try {
-    // Fetch last 10 scans from MongoDB, sorted by newest first
-    // .select() avoids sending heavy rawResults in the list view
-    const recentScans = await Scan.find({ status: 'completed' })
+    const { userEmail } = req.query;
+    let filter = { status: 'completed' };
+    
+    if (!userEmail) {
+      return res.status(200).json([]);
+    }
+
+    const user = await User.findOne({ email: userEmail });
+    if (user) {
+      filter.userId = user._id;
+    } else {
+      return res.status(200).json([]);
+    }
+    
+    const recentScans = await Scan.find(filter)
       .sort({ createdAt: -1 })       // Newest scan first
-      .limit(10)                      // Only last 10 scans
-      .select('scanId targetUrl targetHostname status createdAt'); // Only send lightweight fields
-    res.status(200).json({
-      totalScans: recentScans.length,
-      scans: recentScans
-    });
+      .limit(50)                      // Limit to last 50 scans
+      .select('scanId targetUrl targetHostname status createdAt rawResults'); // Include rawResults to calculate score
+    res.status(200).json(recentScans);
   } catch (error) {
     console.error('Failed to fetch scan history:', error.message);
     res.status(500).json({ error: 'Could not retrieve scan history.' });
