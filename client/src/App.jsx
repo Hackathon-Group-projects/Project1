@@ -4,6 +4,7 @@ import ScanningPage from "./pages/ScanningPage";
 import HistoryPage from "./pages/HistoryPage";
 import DocsPage from "./pages/DocsPage";
 import { Routes, Route, useLocation } from "react-router-dom";
+import AIChatWidget from "./components/AIChatWidget";
 import Report from "./pages/Report";
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
@@ -15,15 +16,24 @@ function Layout() {
   
   // Check if the current route is the landing page ('/')
   const isLandingPage = location.pathname === "/";
-
+  const isloginPage=location.pathname === "/login";
   return (
     <div>
       {/* Render Navbar only if it's NOT the landing page */}
+     
+       
+  
       {!isLandingPage && (
         <div>
           <Navbar />
         </div>
       )}
+      {
+        !isloginPage&& !isLandingPage&&
+        <div>
+           <AIChatWidget/>
+        </div>
+      }
       
       <div className="mt-[80px]">
         <Routes>
