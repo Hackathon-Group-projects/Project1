@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { 
   FiShield, 
   FiLock, 
@@ -19,30 +19,133 @@ import NucleiTab from '../report/NucleiTab';
 import AiFixTab from '../report/AiFixTab';
 
 export default function Report() {
-  const { id = 'sec-9481b' } = useParams();
+  const { id } = useParams();
   
   // 1. Manage active tab state (defaults to 'overview')
   const [activeTab, setActiveTab] = useState('overview');
+  const [scanData, setScanData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!id) {
+        setScanData({ error: 'No scan ID provided in URL.' });
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`http://localhost:5000/api/scan/result/${id}`);
+        const data = await res.json();
+        setScanData(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return <div className="text-center py-20">Loading report data...</div>;
+  }
+
+  if (!scanData) {
+    return <div className="text-center py-20 text-red-500">Failed to load report data.</div>;
+  }
 
   // 2. Function to render the correct component based on state
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab />;
+        return <OverviewTab data={scanData} />;
       case 'headers':
-        return <HeadersTab />;
+        return <HeadersTab data={scanData} />;
       case 'ssl':
-        return <SslTab />;
+        return <SslTab data={scanData} />;
       case 'cves':
-        return <CvesTab />;
+        return <CvesTab data={scanData} />;
       case 'nuclei':
-        return <NucleiTab />;
+        return <NucleiTab data={scanData} />;
       case 'ai':
-        return <AiFixTab />;
+        return <AiFixTab data={scanData} />;
       default:
-        return <OverviewTab />;
+        return <OverviewTab data={scanData} />;
     }
   };
+
+  // Compute score
+  let score = 100;
+  const issues = { critical: 0, high: 0, medium: 0, low: 0 };
+  let missingHeadersCount = 0;
+  let cvesCount = 0;
+  let nucleiCount = 0;
+  let techStackName = 'Unknown';
+  let sslGrade = 'N/A';
+
+  if (scanData && scanData.rawResults) {
+    if (scanData.rawResults.headers && scanData.rawResults.headers.missing) {
+      missingHeadersCount = scanData.rawResults.headers.missing.length;
+      issues.medium += missingHeadersCount;
+      score -= missingHeadersCount * 2;
+    }
+    if (scanData.rawResults.cves && scanData.rawResults.cves.length) {
+      scanData.rawResults.cves.forEach(tech => {
+        if (tech.vulnerabilities && tech.vulnerabilities.length) {
+          cvesCount += tech.vulnerabilities.length;
+          tech.vulnerabilities.forEach(vuln => {
+            if (vuln.severity === 'CRITICAL') issues.critical += 1;
+            else if (vuln.severity === 'HIGH') issues.high += 1;
+            else if (vuln.severity === 'MEDIUM') issues.medium += 1;
+            else issues.low += 1;
+          });
+        }
+      });
+      score -= cvesCount * 5;
+    }
+    if (scanData.rawResults.nuclei && scanData.rawResults.nuclei.length) {
+       nucleiCount = scanData.rawResults.nuclei.length;
+       scanData.rawResults.nuclei.forEach(n => {
+         const sev = n.severity ? n.severity.toUpperCase() : 'INFO';
+         if (sev === 'CRITICAL') issues.critical += 1;
+         else if (sev === 'HIGH') issues.high += 1;
+         else if (sev === 'MEDIUM') issues.medium += 1;
+         else issues.low += 1;
+       });
+       score -= nucleiCount * 10;
+    }
+    if (scanData.rawResults.tech && scanData.rawResults.tech.length > 0) {
+      techStackName = scanData.rawResults.tech[0].name;
+    }
+    if (scanData.rawResults.ssl && scanData.rawResults.ssl.grade) {
+      sslGrade = scanData.rawResults.ssl.grade;
+    }
+  }
+  
+  score = Math.max(0, score);
+  const riskLevel = score > 80 ? 'LOW' : score > 50 ? 'MEDIUM' : 'HIGH';
+
+  if (!scanData || scanData.error) {
+    return (
+      <div className="bg-[#f8fafc] text-zinc-800 font-sans min-h-screen flex items-center justify-center">
+        <div className="p-8 text-center bg-white rounded-xl border border-red-100 shadow-sm max-w-md">
+          <FiShield className="mx-auto text-4xl text-red-400 mb-3" />
+          <h3 className="text-lg font-bold text-slate-800">Scan Report Not Found</h3>
+          <p className="text-slate-500 mt-2 text-sm mb-6">
+            {scanData?.error || 'No scan ID provided. Please run a new scan or select one from history.'}
+          </p>
+          <div className="flex justify-center gap-4">
+            <Link to="/scanning" className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800">
+              Run New Scan
+            </Link>
+            <Link to="/history" className="px-4 py-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-200">
+              View History
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-tech-matrix text-zinc-800 font-sans text-[13px] antialiased min-h-screen flex flex-col selection:bg-[#8C95A6] selection:text-white">
@@ -69,8 +172,8 @@ export default function Report() {
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
                 <path
-                  className="text-red-500 stroke-current"
-                  strokeDasharray="42, 100"
+                  className={`${riskLevel === 'HIGH' ? 'text-red-500' : riskLevel === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500'} stroke-current transition-all duration-1000`}
+                  strokeDasharray={`${score}, 100`}
                   strokeLinecap="round"
                   strokeWidth="3.2"
                   fill="none"
@@ -78,24 +181,24 @@ export default function Report() {
                 />
               </svg>
               <div className="absolute flex flex-col items-center">
-                <span className="text-4xl font-extrabold font-mono text-zinc-950 leading-none">42</span>
+                <span className="text-4xl font-extrabold font-mono text-zinc-950 leading-none">{score}</span>
                 <span className="text-xs font-mono text-zinc-400 mt-1 font-semibold">/ 100</span>
               </div>
             </div>
 
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 font-mono text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span>RISK LEVEL: HIGH</span>
+            <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono ${riskLevel === 'HIGH' ? 'bg-red-50 text-red-700 border-red-200' : riskLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} border`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${riskLevel === 'HIGH' ? 'bg-red-500' : riskLevel === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+              <span>RISK LEVEL: {riskLevel}</span>
             </div>
 
             <div className="w-full mt-6 pt-4 border-t border-slate-100 text-left space-y-2 text-xs font-mono">
               <div className="flex justify-between">
                 <span className="text-zinc-400">Target:</span>
-                <span className="font-semibold text-zinc-800">example.com</span>
+                <span className="font-semibold text-zinc-800">{scanData?.targetHostname}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Scan Date:</span>
-                <span className="text-zinc-700">11 Sep 2026</span>
+                <span className="text-zinc-700">{scanData?.scannedAt ? new Date(scanData.scannedAt).toLocaleDateString() : 'Invalid Date'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Duration:</span>
@@ -115,35 +218,35 @@ export default function Report() {
                   <FiLock className="text-[#5B6475]" />
                   <span>SSL / TLS Audit</span>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-100 text-emerald-800">A+ Valid</span>
+                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${sslGrade.startsWith('A') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{sslGrade}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-medium text-zinc-800">
                   <FiFileText className="text-[#5B6475]" />
                   <span>HTTP Headers</span>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-100 text-amber-800">3 Missing</span>
+                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${missingHeadersCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{missingHeadersCount} Missing</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-medium text-zinc-800">
                   <FiCpu className="text-[#5B6475]" />
                   <span>Tech Stack</span>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-100 text-amber-800">WordPress 6.2</span>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-slate-200 text-slate-800 truncate max-w-[100px]">{techStackName}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-medium text-zinc-800">
                   <FiAlertCircle className="text-red-500" />
                   <span>CVE Registry</span>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-red-100 text-red-800">7 Found</span>
+                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${cvesCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{cvesCount} Found</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-medium text-zinc-800">
                   <FiCrosshair className="text-red-500" />
                   <span>Nuclei Engine</span>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-red-100 text-red-800">2 Issues</span>
+                <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded ${nucleiCount === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{nucleiCount} Issues</span>
               </div>
             </div>
 
@@ -180,7 +283,7 @@ export default function Report() {
                 activeTab === 'headers' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
               }`}
             >
-              Headers (3)
+              Headers ({missingHeadersCount})
             </button>
 
             <button
@@ -198,7 +301,7 @@ export default function Report() {
                 activeTab === 'cves' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
               }`}
             >
-              CVEs (7)
+              CVEs ({cvesCount})
             </button>
 
             <button
@@ -207,7 +310,7 @@ export default function Report() {
                 activeTab === 'nuclei' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
               }`}
             >
-              Nuclei (2)
+              Nuclei ({nucleiCount})
             </button>
 
             <button

@@ -33,6 +33,15 @@ export default function ScanningPage() {
         const newScanId = data.scanId;
         setScanId(newScanId);
 
+        if (data.status === 'cached') {
+          setProgress(100);
+          setLogs(prev => [...prev, `> [INFO] Scan results served from cache.`, `> [OK] Scan Finished.`]);
+          setTimeout(() => {
+            navigate('/report/' + newScanId);
+          }, 1000);
+          return;
+        }
+
         // Open SSE connection
         eventSource = new EventSource(`http://localhost:5000/api/scan/progress?scanId=${newScanId}`);
 
@@ -148,86 +157,64 @@ export default function ScanningPage() {
           </div>
 
           <div className="space-y-3 font-sans">
-            {/* Step 1: SSL Check */}
-            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                  <FiCheck className="text-[14px] stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-semibold text-zinc-800">SSL/TLS Certificate Check</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                [Done]
-              </span>
-            </div>
+            {[
+              { id: 1, name: 'SSL/TLS Certificate Check', threshold: 30, start: 10 },
+              { id: 2, name: 'HTTP Security Headers Scan', threshold: 50, start: 10 },
+              { id: 3, name: 'Tech Stack Fingerprinting', threshold: 90, start: 10 },
+              { id: 4, name: 'CVE / Known Vulnerability Lookup', threshold: 90, start: 10 },
+              { id: 5, name: 'Nuclei Lightweight Scan', threshold: 70, start: 10 },
+              { id: 6, name: 'AI-Powered Analysis', threshold: 98, start: 90 }
+            ].map(step => {
+              const isDone = progress >= step.threshold;
+              const isRunning = progress >= step.start && progress < step.threshold;
+              const isWaiting = progress < step.start;
 
-            {/* Step 2: HTTP Headers */}
-            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                  <FiCheck className="text-[14px] stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-semibold text-zinc-800">HTTP Security Headers Scan</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                [Done]
-              </span>
-            </div>
-
-            {/* Step 3: Tech Fingerprinting (Active) */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#8C95A6]/20 text-[#5B6475] flex items-center justify-center shrink-0">
-                  <FiLoader className="text-[14px] animate-spin" />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-zinc-950">Tech Stack Fingerprinting...</span>
-                  <div className="text-[10px] text-[#5B6475] font-mono">Analyzing HTTP responses & generator meta</div>
-                </div>
-              </div>
-              <span className="px-2.5 py-0.5 text-[11px] font-mono font-semibold rounded-md bg-[#8C95A6] text-white shadow-2xs">
-                [Running]
-              </span>
-            </div>
-
-            {/* Step 4: CVE Lookup */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">CVE / Known Vulnerability Lookup</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
-
-            {/* Step 5: Nuclei Scan */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">Nuclei Lightweight Scan</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
-
-            {/* Step 6: AI Analysis */}
-            <div className="flex items-center justify-between p-2 rounded-xl opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
-                  ⏸
-                </div>
-                <span className="text-xs font-medium text-zinc-600">AI-Powered Analysis</span>
-              </div>
-              <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                [Waiting]
-              </span>
-            </div>
+              if (isDone) {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FiCheck className="text-[14px] stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-semibold text-zinc-800">{step.name}</span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[11px] font-mono font-medium rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      [Done]
+                    </span>
+                  </div>
+                );
+              } else if (isRunning) {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#8C95A6]/20 text-[#5B6475] flex items-center justify-center shrink-0">
+                        <FiLoader className="text-[14px] animate-spin" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-zinc-950">{step.name}...</span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 text-[11px] font-mono font-semibold rounded-md bg-[#8C95A6] text-white shadow-2xs">
+                      [Running]
+                    </span>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={step.id} className="flex items-center justify-between p-2 rounded-xl opacity-60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 font-mono text-[10px]">
+                        ⏸
+                      </div>
+                      <span className="text-xs font-medium text-zinc-600">{step.name}</span>
+                    </div>
+                    <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                      [Waiting]
+                    </span>
+                  </div>
+                );
+              }
+            })}
           </div>
         </div>
 

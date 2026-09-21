@@ -1,47 +1,9 @@
-import React, { useState } from 'react';
-import { FiBook, FiCpu, FiShield, FiCode, FiTerminal, FiZap } from 'react-icons/fi';
+const fs = require('fs');
+const path = 'client/src/pages/DocsPage.jsx';
+let content = fs.readFileSync(path, 'utf8');
 
-export default function DocsPage() {
-  const [activeTab, setActiveTab] = useState('intro');
-
-  const tabs = [ 
-    { id: 'intro', label: 'Introduction', icon: <FiBook /> },
-    { id: 'engine', label: 'Scanning Engine', icon: <FiCpu /> },
-    { id: 'ai', label: 'AI Integration', icon: <FiZap /> },
-    { id: 'api', label: 'API Reference', icon: <FiCode /> },
-  ];
-
-  return (
-    <div className="mt-[60px] min-h-screen bg-[#fbfbfc] text-slate-800 font-sans flex justify-center pb-12">
-      <div className="max-w-6xl w-full flex flex-col md:flex-row gap-8 px-6 py-10">
-        
-        {/* Sidebar Navigation */}
-        <aside className="w-full md:w-64 shrink-0">
-          <div className="sticky top-[100px]">
-            <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4 ml-2">Documentation</h2>
-            <nav className="flex flex-col gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-white shadow-sm text-black border border-slate-200/80'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
-                  }`}
-                >
-                  <span className={activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}>
-                    {tab.icon}
-                  </span>
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Content Area */}
-        <main className="flex-1 bg-white border border-slate-200/80 rounded-2xl shadow-sm p-8 min-h-[70vh]">
+const newMain = \
+<main className="flex-1 bg-white border border-slate-200/80 rounded-2xl shadow-sm p-8 min-h-[70vh]">
           {activeTab === 'intro' && (
             <div className="animate-fadeIn">
               <div className="flex items-center gap-3 mb-6">
@@ -225,7 +187,7 @@ export default function DocsPage() {
                     <p className="mb-4">Initiates a new passive scan sequence and returns a Queue/Scan ID immediately.</p>
                     <div className="bg-slate-800 text-slate-300 p-3 rounded-lg font-mono text-xs overflow-x-auto">
                       <div className="text-slate-500 mb-1">// Request Body</div>
-                      {`{ "url": "https://example.com" }`}
+                      {{ "url": "https://example.com" }}
                     </div>
                   </div>
                 </div>
@@ -240,7 +202,7 @@ export default function DocsPage() {
                     <p className="mb-4">Server-Sent Events (SSE) endpoint to receive real-time terminal logs and progress percentage.</p>
                     <div className="bg-slate-800 text-slate-300 p-3 rounded-lg font-mono text-xs overflow-x-auto">
                       <div className="text-slate-500 mb-1">// Event Stream Output</div>
-                      {`data: {"type":"progress","step":"SSL Scan","progress":20,"log":"Checking SSL..."}\n\ndata: {"type":"done","scanId":"uuid","log":"Finished."}`}
+                      {data: {"type":"progress","step":"SSL Scan","progress":20,"log":"Checking SSL..."}\n\ndata: {"type":"done","scanId":"uuid","log":"Finished."}}
                     </div>
                   </div>
                 </div>
@@ -271,7 +233,9 @@ export default function DocsPage() {
             </div>
           )}
         </main>
-      </div>
-    </div>
-  );
-}
+\;
+
+const pattern = /<main className="flex-1 bg-white border border-slate-200\/80 rounded-2xl shadow-sm p-8 min-h-\[70vh\]">.*?<\/main>/s;
+content = content.replace(pattern, newMain);
+fs.writeFileSync(path, content, 'utf8');
+console.log('Docs updated successfully');

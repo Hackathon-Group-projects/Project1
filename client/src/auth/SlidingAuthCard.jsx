@@ -47,20 +47,42 @@ export default function SlidingAuthCard() {
 
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
   const [signInOtpInput, setSignInOtpInput] = useState('');
   const [generatedSignInOtp, setGeneratedSignInOtp] = useState(null);
   const [isSignInOtpSent, setIsSignInOtpSent] = useState(false);
   const [signInBtnText, setSignInBtnText] = useState('Send OTP');
 
-  // Handle OTP Trigger with toast.promise
+  // Handle OTP Trigger with DB Check
   const handleSendOtp = async (email, isSignUp) => {
-    if (!email.trim()) {
-      toast.error('Please enter your email first!');
-      return;
-    }
-    if (!email.includes('@')) {
+    if (!email.trim() || !email.includes('@')) {
       toast.error('Please enter a valid email address.');
       return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      
+      if (isSignUp && data.exists) {
+        toast.error('You already have an account! Switching to Sign In.', toastConfig);
+        setIsRightActive(false); // Switch to Sign In
+        setSignInEmail(email);
+        return;
+      }
+      
+      if (!isSignUp && !data.exists) {
+        toast.error('No account found! Switching to Sign Up.', toastConfig);
+        setIsRightActive(true); // Switch to Sign Up
+        setSignUpEmail(email);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to check user status', err);
     }
 
     const newOtp = generateOTP();
@@ -71,7 +93,6 @@ export default function SlidingAuthCard() {
     setBtnText('Sending...');
     setStoredOtp(newOtp);
 
-    // Using toast.promise for sleek loading -> success/error states
     await toast.promise(
       sendOtpEmail(email, newOtp),
       {
@@ -83,7 +104,6 @@ export default function SlidingAuthCard() {
           return `Verification OTP sent to ${email}`;
         },
         error: (err) => {
-          console.error('EmailJS Error:', err);
           setBtnText('Send OTP');
           return 'Failed to send OTP. Check email service configuration.';
         },
@@ -93,36 +113,66 @@ export default function SlidingAuthCard() {
   };
 
   // Sign Up Form Submit
-  const onSignUpSubmit = (e) => {
+  const onSignUpSubmit = async (e) => {
     e.preventDefault();
     if (!signUpOtpInput.trim()) {
       toast.error('Please enter the OTP sent to your email!', toastConfig);
       return;
     }
-
-    if (signUpOtpInput.trim() === generatedSignUpOtp) {
-      toast.success('Correct OTP! Account created successfully.', toastConfig);
-      login(signUpEmail);
-      navigate('/');
-    } else {
+    if (signUpOtpInput.trim() !== generatedSignUpOtp) {
       toast.error('Wrong OTP! Please check your inbox and retry.', toastConfig);
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signUpEmail, password: signUpPassword, name: signUpName })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success('Account created successfully!', toastConfig);
+        login(data.user.email); // or login(data.token) depending on your auth provider
+        navigate('/');
+      } else {
+        toast.error(data.error || 'Registration failed', toastConfig);
+      }
+    } catch (err) {
+      toast.error('Server error during registration', toastConfig);
     }
   };
 
   // Sign In Form Submit
-  const onSignInSubmit = (e) => {
+  const onSignInSubmit = async (e) => {
     e.preventDefault();
     if (!signInOtpInput.trim()) {
       toast.error('Please enter your verification OTP to continue!', toastConfig);
       return;
     }
-
-    if (signInOtpInput.trim() === generatedSignInOtp) {
-      toast.success('Correct OTP! Signed in successfully.', toastConfig);
-      login(signInEmail);
-      navigate('/');
-    } else {
+    if (signInOtpInput.trim() !== generatedSignInOtp) {
       toast.error('Wrong OTP! Authentication failed.', toastConfig);
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signInEmail, password: signInPassword })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success('Signed in successfully!', toastConfig);
+        login(data.user.email);
+        navigate('/');
+      } else {
+        toast.error(data.error || 'Invalid credentials', toastConfig);
+      }
+    } catch (err) {
+      toast.error('Server error during login', toastConfig);
     }
   };
 
@@ -275,6 +325,15 @@ export default function SlidingAuthCard() {
             placeholder="Email Address"
             value={signInEmail}
             onChange={(e) => setSignInEmail(e.target.value)}
+            required
+            className="bg-gray-100 border border-transparent px-4 py-3 my-1 w-full rounded-lg text-xs outline-none focus:border-[#1a1a1a] focus:bg-white transition-all"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={signInPassword}
+            onChange={(e) => setSignInPassword(e.target.value)}
             required
             className="bg-gray-100 border border-transparent px-4 py-3 my-1 w-full rounded-lg text-xs outline-none focus:border-[#1a1a1a] focus:bg-white transition-all"
           />
