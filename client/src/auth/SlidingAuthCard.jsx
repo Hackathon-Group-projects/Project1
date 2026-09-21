@@ -134,7 +134,7 @@ export default function SlidingAuthCard() {
       
       if (res.ok) {
         toast.success('Account created successfully!', toastConfig);
-        login(data.user.email); // or login(data.token) depending on your auth provider
+        login(data.user.email, data.user.name); // or login(data.token) depending on your auth provider
         navigate('/');
       } else {
         toast.error(data.error || 'Registration failed', toastConfig);
@@ -147,14 +147,6 @@ export default function SlidingAuthCard() {
   // Sign In Form Submit
   const onSignInSubmit = async (e) => {
     e.preventDefault();
-    if (!signInOtpInput.trim()) {
-      toast.error('Please enter your verification OTP to continue!', toastConfig);
-      return;
-    }
-    if (signInOtpInput.trim() !== generatedSignInOtp) {
-      toast.error('Wrong OTP! Authentication failed.', toastConfig);
-      return;
-    }
 
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {
@@ -166,7 +158,7 @@ export default function SlidingAuthCard() {
       
       if (res.ok) {
         toast.success('Signed in successfully!', toastConfig);
-        login(data.user.email);
+        login(data.user.email, data.user.name);
         navigate('/');
       } else {
         toast.error(data.error || 'Invalid credentials', toastConfig);
@@ -338,33 +330,9 @@ export default function SlidingAuthCard() {
             className="bg-gray-100 border border-transparent px-4 py-3 my-1 w-full rounded-lg text-xs outline-none focus:border-[#1a1a1a] focus:bg-white transition-all"
           />
 
-          {/* Sign-In OTP Row */}
-          <div className="flex w-full items-center justify-between gap-2.5 my-1">
-            <input
-              type="text"
-              placeholder="Enter 4-digit OTP"
-              value={signInOtpInput}
-              onChange={(e) => setSignInOtpInput(e.target.value)}
-              disabled={!isSignInOtpSent}
-              required
-              className="bg-gray-100 border border-transparent px-4 py-3 w-full rounded-lg text-xs font-mono outline-none focus:border-[#1a1a1a] focus:bg-white disabled:bg-gray-100/60 disabled:cursor-not-allowed transition-all m-0"
-            />
-            <button
-              type="button"
-              onClick={() => handleSendOtp(signInEmail, false)}
-              className="px-4 py-3 m-0 rounded-lg bg-[#1a1a1a] text-white text-xs font-bold whitespace-nowrap border border-[#1a1a1a] hover:shadow-[0_4px_15px_rgba(26,26,26,0.4)] active:scale-95 transition-all cursor-pointer"
-            >
-              {signInBtnText}
-            </button>
-          </div>
-
           <a
-            href="#forgot"
-            onClick={(e) => {
-              e.preventDefault();
-              toast('Password reset link has been dispatched to administrators.', toastConfig);
-            }}
-            className="text-xs text-gray-600 hover:text-[#1a1a1a] my-3 transition-colors"
+            href="#"
+            className="text-gray-500 text-xs mt-3 mb-2 hover:text-[#1a1a1a] underline decoration-gray-300 underline-offset-2 transition-all"
           >
             Forgot your password?
           </a>

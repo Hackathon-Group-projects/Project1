@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   FiGlobe, 
@@ -6,32 +6,66 @@ import {
   FiLoader, 
   FiAlertTriangle 
 } from 'react-icons/fi';
+import { AuthContext } from '../context/AuthContext';
 
 export default function ScanningPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const targetUrl = searchParams.get('url') || "https://example.com";
+  const targetUrl = searchParams.get('url');
+  const { userEmail } = useContext(AuthContext);
   
   const [scanId, setScanId] = useState("Initializing...");
   const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState([`> Initializing passive handshake with ${targetUrl}:443...`]);
+  const [logs, setLogs] = useState(targetUrl ? [`> Initializing passive handshake with ${targetUrl}:443...`] : []);
   const [currentStep, setCurrentStep] = useState('Initializing');
 
   useEffect(() => {
     let eventSource;
+
+    if (!userEmail) {
+      setCurrentStep('NotFound');
+      return;
+    }
+
+    if (!targetUrl) {
+      if (userEmail) {
+        const fetchHistory = async () => {
+          try {
+            const res = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const latestScan = data[0].scanId;
+              localStorage.setItem('lastScanId', latestScan);
+              navigate(`/report/${latestScan}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error(e);
+          }
+          setCurrentStep('NotFound');
+        };
+        fetchHistory();
+        return;
+      }
+
+      setCurrentStep('NotFound');
+      return;
+    }
 
     const startScan = async () => {
       try {
         const res = await fetch('http://localhost:5000/api/scan/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: targetUrl })
+          body: JSON.stringify({ url: targetUrl, userEmail })
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
         const newScanId = data.scanId;
         setScanId(newScanId);
+        localStorage.setItem('lastScanId', newScanId);
+        localStorage.setItem('lastScanUrl', targetUrl);
 
         if (data.status === 'cached') {
           setProgress(100);
@@ -81,7 +115,7 @@ export default function ScanningPage() {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [targetUrl, navigate]);
+  }, [targetUrl, navigate, userEmail]);
   return (
     <div className="bg-tech-matrix text-zinc-800 font-sans text-[13px] antialiased min-h-screen flex flex-col selection:bg-[#8C95A6] selection:text-white relative">
       
@@ -94,6 +128,32 @@ export default function ScanningPage() {
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col justify-center">
 
+        {!targetUrl || currentStep === 'NotFound' ? (
+          <div className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col items-center justify-center mt-20">
+            <div className="bg-white border border-rose-50 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center justify-center text-center w-[400px]">
+              <div className="mb-4">
+                <svg className="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                Scan Report Not Found
+              </h3>
+              <p className="text-slate-400 text-sm mb-8">
+                No target URL provided.
+              </p>
+              <div className="flex items-center gap-3 w-full justify-center">
+                <Link to="/" className="px-5 py-2.5 bg-[#0f172a] text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all active:scale-[0.98]">
+                  Run New Scan
+                </Link>
+                <Link to="/history" className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-all active:scale-[0.98]">
+                  View History
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Target Domain Card */}
         <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -256,6 +316,8 @@ export default function ScanningPage() {
           <span className="font-medium">Please don't close this tab while real-time diagnostics are executing.</span>
         </div>
 
+        </>
+        )}
       </main>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   FiShield, 
   FiLock, 
@@ -17,9 +17,12 @@ import SslTab from '../report/SslTab';
 import CvesTab from '../report/CvesTab';
 import NucleiTab from '../report/NucleiTab';
 import AiFixTab from '../report/AiFixTab';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Report() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { userEmail } = React.useContext(AuthContext);
   
   // 1. Manage active tab state (defaults to 'overview')
   const [activeTab, setActiveTab] = useState('overview');
@@ -28,11 +31,32 @@ export default function Report() {
 
   React.useEffect(() => {
     const fetchData = async () => {
-      if (!id) {
-        setScanData({ error: 'No scan ID provided in URL.' });
+      // If user is not logged in, ALWAYS show the "Not Found" card
+      if (!userEmail) {
+        setScanData({ notFound: true });
         setLoading(false);
         return;
       }
+
+      if (!id) {
+        try {
+          const histRes = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+          const histData = await histRes.json();
+          if (histData && histData.length > 0) {
+            const latestScan = histData[0].scanId;
+            localStorage.setItem('lastScanId', latestScan);
+            navigate(`/report/${latestScan}`, { replace: true });
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to fetch history:", e);
+        }
+
+        setScanData({ notFound: true });
+        setLoading(false);
+        return;
+      }
+      
       try {
         const res = await fetch(`http://localhost:5000/api/scan/result/${id}`);
         const data = await res.json();
@@ -44,14 +68,38 @@ export default function Report() {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, navigate, userEmail]);
 
   if (loading) {
     return <div className="text-center py-20">Loading report data...</div>;
   }
 
-  if (!scanData) {
-    return <div className="text-center py-20 text-red-500">Failed to load report data.</div>;
+  if (!scanData || scanData.notFound || scanData.error || scanData.unauthorized) {
+    return (
+      <div className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col items-center justify-center mt-20">
+        <div className="bg-white border border-rose-50 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center justify-center text-center w-[400px]">
+          <div className="mb-4">
+            <svg className="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">
+            Scan Report Not Found
+          </h3>
+          <p className="text-slate-400 text-sm mb-8">
+            No scan ID provided in URL.
+          </p>
+          <div className="flex items-center gap-3 w-full justify-center">
+            <Link to="/" className="px-5 py-2.5 bg-[#0f172a] text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all active:scale-[0.98]">
+              Run New Scan
+            </Link>
+            <Link to="/history" className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-all active:scale-[0.98]">
+              View History
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // 2. Function to render the correct component based on state

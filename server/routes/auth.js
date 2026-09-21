@@ -9,7 +9,7 @@ const User = require('../models/User');
 // @access  Public
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, email, password } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ error: 'Please enter all required fields' });
@@ -27,6 +27,7 @@ router.post('/register', async (req, res) => {
 
         // Create the new user
         const newUser = new User({
+            name,
             email,
             passwordHash
         });
@@ -44,6 +45,7 @@ router.post('/register', async (req, res) => {
             token,
             user: {
                 id: savedUser._id,
+                name: savedUser.name,
                 email: savedUser.email,
                 plan: savedUser.plan
             }
@@ -89,6 +91,7 @@ router.post('/login', async (req, res) => {
             token,
             user: {
                 id: user._id,
+                name: user.name,
                 email: user.email,
                 plan: user.plan
             }

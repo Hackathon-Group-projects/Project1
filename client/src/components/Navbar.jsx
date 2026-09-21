@@ -6,7 +6,10 @@ import { GiCyberEye } from "react-icons/gi";
 import NavSelector from './NavSelector';
 import { AuthContext } from '../context/AuthContext';
 export default function Navbar({ onToggleSidebar }) {
-  const { userEmail, logout } = useContext(AuthContext);
+  const { userEmail, userName, logout } = useContext(AuthContext);
+
+  const displayUser = userName || (userEmail ? userEmail.split('@')[0] : '');
+
   return (
     <header className="w-full h-14 border-b border-slate-200/80 bg-white/90 backdrop-blur-md py-9 px-4 sm:px-6 flex items-center justify-between fixed top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
       
@@ -58,7 +61,6 @@ export default function Navbar({ onToggleSidebar }) {
         >
           <FiClock className="text-slate-500 text-[13px]" />
           <span className="hidden sm:inline">History</span>
-          <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-100 text-slate-500">24</span>
         </Link>
 
         {/* Docs Button */}
@@ -75,7 +77,7 @@ export default function Navbar({ onToggleSidebar }) {
         {userEmail ? (
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-700 hidden sm:inline">
-              {userEmail.split('@')[0]}
+              {displayUser}
             </span>
             <button 
               onClick={logout}

@@ -1,21 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiGlobe, FiSearch, FiFileText } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
+import { AuthContext } from '../context/AuthContext';
 
 export default function HistoryPage() {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { userEmail } = useContext(AuthContext);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [userEmail]);
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/scan/history');
+      const queryParams = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
+      const res = await fetch(`http://localhost:5000/api/scan/history${queryParams}`);
       const data = await res.json();
       setScans(data);
     } catch (error) {
