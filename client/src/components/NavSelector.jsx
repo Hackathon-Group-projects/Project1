@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FiCompass, 
   FiChevronDown, 
@@ -19,7 +19,16 @@ import { HiSparkles } from 'react-icons/hi2';
 
 export default function NavSelector() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState('/dashboard');
+  const location = useLocation();
+  const [selected, setSelected] = useState('/dash');
+
+  useEffect(() => {
+    if (location.pathname === '/dash' || location.pathname === '/scanning' || location.pathname === '/report') {
+      setSelected(location.pathname);
+    } else if (location.pathname.startsWith('/report/')) {
+      setSelected('/report');
+    }
+  }, [location.pathname]);
 
   const handleChange = (e) => {
     const path = e.target.value;
