@@ -45,16 +45,23 @@ export default function HistoryPage() {
       score -= scan.rawResults.headers.missing.length * 2;
     }
     if (scan.rawResults.cves && scan.rawResults.cves.length) {
-      scan.rawResults.cves.forEach(cve => {
-        if (cve.severity === 'CRITICAL' || cve.severity === 'HIGH') issues.high += 1;
-        else issues.medium += 1;
+      let cvesCount = 0;
+      scan.rawResults.cves.forEach(tech => {
+        if (tech.vulnerabilities && tech.vulnerabilities.length) {
+          cvesCount += tech.vulnerabilities.length;
+          tech.vulnerabilities.forEach(vuln => {
+            if (vuln.severity === 'CRITICAL' || vuln.severity === 'HIGH') issues.high += 1;
+            else issues.medium += 1;
+          });
+        }
       });
-      score -= scan.rawResults.cves.length * 5;
+      score -= cvesCount * 5;
     }
     if (scan.rawResults.nuclei && scan.rawResults.nuclei.length) {
        scan.rawResults.nuclei.forEach(n => {
-         if (n.info && (n.info.severity === 'critical')) issues.critical += 1;
-         else if (n.info && n.info.severity === 'high') issues.high += 1;
+         const sev = n.severity ? n.severity.toUpperCase() : 'INFO';
+         if (sev === 'CRITICAL') issues.critical += 1;
+         else if (sev === 'HIGH') issues.high += 1;
          else issues.medium += 1;
        });
        score -= scan.rawResults.nuclei.length * 10;
@@ -170,7 +177,7 @@ export default function HistoryPage() {
 
                     <div className="flex items-center gap-3 mt-4 sm:mt-0">
                       <Link 
-                        to={`/report/${scan._id}`}
+                        to={`/report/${scan.scanId}`}
                         className="px-3 py-1.5 bg-[#0f1115] hover:bg-black text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
                       >
                         <FiFileText className="text-[13px]" /> [View Report]

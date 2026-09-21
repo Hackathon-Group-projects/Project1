@@ -100,4 +100,21 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// @route   POST /api/auth/check
+// @desc    Check if an email is already registered
+// @access  Public
+router.post('/check', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        const user = await User.findOne({ email });
+        res.json({ exists: !!user });
+    } catch (error) {
+        console.error('Check email error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;
