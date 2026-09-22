@@ -61,7 +61,7 @@ export default function SlidingAuthCard() {
     }
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/check`, {
+      const res = await fetch(`http://${window.location.hostname}:4000/api/auth/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -125,7 +125,7 @@ export default function SlidingAuthCard() {
     }
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/register`, {
+      const res = await fetch(`http://${window.location.hostname}:4000/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signUpEmail, password: signUpPassword, name: signUpName })
@@ -149,7 +149,7 @@ export default function SlidingAuthCard() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:5000/api/auth/login`, {
+      const res = await fetch(`http://${window.location.hostname}:4000/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signInEmail, password: signInPassword })

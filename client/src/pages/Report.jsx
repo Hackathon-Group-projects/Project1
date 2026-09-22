@@ -36,7 +36,7 @@ export default function Report() {
           // Logged in: fetch history and redirect to newest
           try {
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const histRes = await fetch(`http://${window.location.hostname}:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
+            const histRes = await fetch(`http://${window.location.hostname}:4000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
             const histData = await histRes.json();
             if (histData && histData.length > 0) {
               const latestScan = histData[0].scanId;
@@ -63,11 +63,7 @@ export default function Report() {
       }
       
       try {
-<<<<<<< HEAD
-        const res = await fetch(`http://localhost:3000/api/scan/result/${id}`);
-=======
-        const res = await fetch(`http://${window.location.hostname}:5000/api/scan/result/${id}`);
->>>>>>> 822d0ce404b42f7e706e1eceb50fbf3d3be00948
+        const res = await fetch(`http://${window.location.hostname}:4000/api/scan/result/${id}`);
         const data = await res.json();
         setScanData(data);
       } catch (err) {

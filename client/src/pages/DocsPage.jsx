@@ -211,7 +211,7 @@ export default function DocsPage() {
               </div>
               <p className="text-slate-600 mb-8 leading-relaxed">
                 Integrate Secura into your CI/CD pipelines or custom dashboards using our REST APIs. 
-                All endpoints are hosted at <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-600">http://localhost:3000</code>.
+                All endpoints are hosted at <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-600">http://localhost:4000</code>.
               </p>
               
               <div className="space-y-6">
