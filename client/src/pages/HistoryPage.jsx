@@ -19,7 +19,7 @@ export default function HistoryPage() {
     try {
       const queryParams = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`http://localhost:5000/api/scan/history${queryParams}`, { headers });
+      const res = await fetch(`http://${window.location.hostname}:5000/api/scan/history${queryParams}`, { headers });
       
       if (!res.ok) {
         throw new Error('Failed to fetch history');
@@ -39,7 +39,7 @@ export default function HistoryPage() {
     if (!window.confirm('Are you sure you want to delete this scan report?')) return;
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      await fetch(`http://localhost:5000/api/scan/${id}`, { method: 'DELETE', headers });
+      await fetch(`http://${window.location.hostname}:5000/api/scan/${id}`, { method: 'DELETE', headers });
       setScans(scans.filter(s => s._id !== id));
     } catch (error) {
       console.error('Failed to delete', error);
@@ -176,7 +176,7 @@ export default function HistoryPage() {
 
                   <div className="flex flex-wrap items-center justify-between mt-auto pt-4 border-t border-slate-100">
                     <div className="flex items-center gap-4 text-xs font-sans text-slate-500">
-                      <span>Scanned: <span className="font-medium text-slate-700">{new Date(scan.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></span>
+                      <span>Scanned: <span className="font-medium text-slate-700">{new Date(scan.scannedAt || scan.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></span>
                       <span>Duration: <span className="font-medium text-slate-700">18s</span></span>
                       <span>
                         Issues: 

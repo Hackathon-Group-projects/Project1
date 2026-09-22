@@ -21,7 +21,16 @@ const User = require('../models/User');
 
 // Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
-  const { url, userId, userEmail } = req.body; // userEmail preserved per user's edit, userId restored
+  const { url, userId, userEmail } = req.body; 
+
+  let actualUserId = userId || null;
+  if (!actualUserId && userEmail) {
+    const User = require('../models/User');
+    const user = await User.findOne({ email: userEmail });
+    if (user) {
+      actualUserId = user._id;
+    }
+  }
 
   // URL with proper validation
   const { isValid, cleanedUrl, error } = validateAndCleanUrl(url);
@@ -44,7 +53,7 @@ scanRouter.post('/start', async (req, res) => {
   });
 
   // Run the sequence in the background, passing userId to bind to account
-  runScanSequenceSSE(scanId, targetUrl, userId || null).catch(err => {
+  runScanSequenceSSE(scanId, targetUrl, actualUserId).catch(err => {
     console.error(`Background scan error for ${scanId}:`, err);
   });
 });
@@ -193,9 +202,9 @@ scanRouter.get('/history', auth, async (req, res) => {
     // Fetch last 50 scans from MongoDB tied to the authenticated user ID
     // .select() avoids sending heavy rawResults in the list view
     const recentScans = await Scan.find({ status: 'completed', userId: req.user.id })
-      .sort({ createdAt: -1 })       // Newest scan first
+      .sort({ scannedAt: -1 })       // Newest scan first
       .limit(50)                      // Limit to last 50 scans
-      .select('scanId targetUrl targetHostname status createdAt rawResults'); // Include rawResults to calculate score
+      .select('scanId targetUrl targetHostname status scannedAt rawResults.ssl rawResults.headers rawResults.cves'); // Exclude heavy nuclei data
     res.status(200).json(recentScans);
   } catch (error) {
     console.error('Failed to fetch scan history:', error.message);

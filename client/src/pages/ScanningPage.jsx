@@ -32,7 +32,7 @@ export default function ScanningPage() {
         const fetchHistory = async () => {
           try {
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const res = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
+            const res = await fetch(`http://${window.location.hostname}:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
             const data = await res.json();
             if (data && data.length > 0) {
               const latestScan = data[0].scanId;
@@ -55,7 +55,11 @@ export default function ScanningPage() {
 
     const startScan = async () => {
       try {
+<<<<<<< HEAD
         const res = await fetch('http://localhost:3000/api/scan/start', {
+=======
+        const res = await fetch(`http://${window.location.hostname}:5000/api/scan/start`, {
+>>>>>>> 822d0ce404b42f7e706e1eceb50fbf3d3be00948
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: targetUrl, userEmail })
@@ -78,7 +82,11 @@ export default function ScanningPage() {
         }
 
         // Open SSE connection
+<<<<<<< HEAD
         eventSource = new EventSource(`http://localhost:3000/api/scan/progress?scanId=${newScanId}`);
+=======
+        eventSource = new EventSource(`http://${window.location.hostname}:5000/api/scan/progress?scanId=${newScanId}`);
+>>>>>>> 822d0ce404b42f7e706e1eceb50fbf3d3be00948
 
         eventSource.onmessage = (e) => {
           const msg = JSON.parse(e.data);
