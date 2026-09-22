@@ -40,7 +40,7 @@ export default function Report() {
 
       if (!id) {
         try {
-          const histRes = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+          const histRes = await fetch(`http://localhost:3000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
           const histData = await histRes.json();
           if (histData && histData.length > 0) {
             const latestScan = histData[0].scanId;
@@ -58,7 +58,7 @@ export default function Report() {
       }
       
       try {
-        const res = await fetch(`http://localhost:5000/api/scan/result/${id}`);
+        const res = await fetch(`http://localhost:3000/api/scan/result/${id}`);
         const data = await res.json();
         setScanData(data);
       } catch (err) {

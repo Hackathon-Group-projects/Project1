@@ -18,7 +18,7 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     try {
       const queryParams = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
-      const res = await fetch(`http://localhost:5000/api/scan/history${queryParams}`);
+      const res = await fetch(`http://localhost:3000/api/scan/history${queryParams}`);
       const data = await res.json();
       setScans(data);
     } catch (error) {
@@ -31,7 +31,7 @@ export default function HistoryPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this scan report?')) return;
     try {
-      await fetch(`http://localhost:5000/api/scan/${id}`, { method: 'DELETE' });
+      await fetch(`http://localhost:3000/api/scan/${id}`, { method: 'DELETE' });
       setScans(scans.filter(s => s._id !== id));
     } catch (error) {
       console.error('Failed to delete', error);

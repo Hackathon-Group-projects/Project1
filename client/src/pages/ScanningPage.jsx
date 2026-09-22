@@ -31,7 +31,7 @@ export default function ScanningPage() {
       if (userEmail) {
         const fetchHistory = async () => {
           try {
-            const res = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+            const res = await fetch(`http://localhost:3000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
             const data = await res.json();
             if (data && data.length > 0) {
               const latestScan = data[0].scanId;
@@ -54,7 +54,7 @@ export default function ScanningPage() {
 
     const startScan = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/scan/start', {
+        const res = await fetch('http://localhost:3000/api/scan/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: targetUrl, userEmail })
@@ -77,7 +77,7 @@ export default function ScanningPage() {
         }
 
         // Open SSE connection
-        eventSource = new EventSource(`http://localhost:5000/api/scan/progress?scanId=${newScanId}`);
+        eventSource = new EventSource(`http://localhost:3000/api/scan/progress?scanId=${newScanId}`);
 
         eventSource.onmessage = (e) => {
           const msg = JSON.parse(e.data);
