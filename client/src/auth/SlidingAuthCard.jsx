@@ -134,7 +134,7 @@ export default function SlidingAuthCard() {
       
       if (res.ok) {
         toast.success('Account created successfully!', toastConfig);
-        login(data.user.email, data.user.name); // or login(data.token) depending on your auth provider
+        login(data.token, data.user.email, data.user.name);
         navigate('/');
       } else {
         toast.error(data.error || 'Registration failed', toastConfig);
@@ -158,7 +158,7 @@ export default function SlidingAuthCard() {
       
       if (res.ok) {
         toast.success('Signed in successfully!', toastConfig);
-        login(data.user.email, data.user.name);
+        login(data.token, data.user.email, data.user.name);
         navigate('/');
       } else {
         toast.error(data.error || 'Invalid credentials', toastConfig);
