@@ -192,6 +192,10 @@ Answer clearly and practically. Include exact, copy-paste code where relevant.
 Be concise — 3-5 sentences max unless code is needed.
 
 {context_block}
+
+CURRENT REPORT CONTEXT (What the user is looking at):
+{request.report_context if request.report_context else "No report provided."}
+
 QUESTION: {request.question}
 {f'(Context: Scan was for {request.scan_url})' if request.scan_url else ''}
 
