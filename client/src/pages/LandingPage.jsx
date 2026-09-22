@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { GiCyberEye } from "react-icons/gi";
+import { AuthContext } from '../context/AuthContext';
+
 export default function LandingPage() {
+  const { userEmail } = useContext(AuthContext);
+  
   return (
     <div className="w-full min-h-screen font-['Plus_Jakarta_Sans',sans-serif] bg-[#fbfbfc] text-[#09090b] antialiased overflow-x-hidden relative flex flex-col justify-between selection:bg-[#18181b] selection:text-white">
       
@@ -146,16 +150,26 @@ export default function LandingPage() {
             <span className="text-[1.45rem] font-bold tracking-tight text-[#09090b]">Secura</span>
           </Link>
 
-          {/* Action Button: Sign In / Up (Links to auth page route if applicable) */}
+          {/* Action Button: Sign In / Up or Dashboard */}
           <div className="flex items-center gap-4">
-            <Link to="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#09090b] text-white text-[0.92rem] font-semibold tracking-tight shadow-[0_4px_14px_rgba(9,9,11,0.15)] hover:bg-[#18181b] hover:-translate-y-px transition-all duration-200">
-              <span>Sign In / Up</span>
-              <svg className="w-[14px] h-[14px] transition-transform duration-150 hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 3.5H3.5C2.67157 3.5 2 4.17157 2 5V11C2 11.8284 2.67157 12.5 3.5 12.5H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M10.5 5.5L13 8L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="6" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </Link>
+            {userEmail ? (
+              <Link to="/scanning" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#09090b] text-white text-[0.92rem] font-semibold tracking-tight shadow-[0_4px_14px_rgba(9,9,11,0.15)] hover:bg-[#18181b] hover:-translate-y-px transition-all duration-200">
+                <span>Dashboard</span>
+                <svg className="w-[14px] h-[14px] transition-transform duration-150 hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10.5 5.5L13 8L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </Link>
+            ) : (
+              <Link to="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#09090b] text-white text-[0.92rem] font-semibold tracking-tight shadow-[0_4px_14px_rgba(9,9,11,0.15)] hover:bg-[#18181b] hover:-translate-y-px transition-all duration-200">
+                <span>Sign In / Up</span>
+                <svg className="w-[14px] h-[14px] transition-transform duration-150 hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 3.5H3.5C2.67157 3.5 2 4.17157 2 5V11C2 11.8284 2.67157 12.5 3.5 12.5H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M10.5 5.5L13 8L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="6" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </Link>
+            )}
           </div>
         </header>
 

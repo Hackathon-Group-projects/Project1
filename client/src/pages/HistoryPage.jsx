@@ -176,7 +176,7 @@ export default function HistoryPage() {
 
                   <div className="flex flex-wrap items-center justify-between mt-auto pt-4 border-t border-slate-100">
                     <div className="flex items-center gap-4 text-xs font-sans text-slate-500">
-                      <span>Scanned: <span className="font-medium text-slate-700">{new Date(scan.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></span>
+                      <span>Scanned: <span className="font-medium text-slate-700">{new Date(scan.scannedAt || scan.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span></span>
                       <span>Duration: <span className="font-medium text-slate-700">18s</span></span>
                       <span>
                         Issues: 
