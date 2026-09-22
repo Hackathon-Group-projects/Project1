@@ -22,7 +22,7 @@ import { AuthContext } from '../context/AuthContext';
 export default function Report() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userEmail } = React.useContext(AuthContext);
+  const { userEmail, token } = React.useContext(AuthContext);
   
   // 1. Manage active tab state (defaults to 'overview')
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,7 +40,8 @@ export default function Report() {
 
       if (!id) {
         try {
-          const histRes = await fetch(`http://localhost:3000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+          const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+          const histRes = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
           const histData = await histRes.json();
           if (histData && histData.length > 0) {
             const latestScan = histData[0].scanId;

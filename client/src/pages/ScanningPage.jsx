@@ -12,7 +12,7 @@ export default function ScanningPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const targetUrl = searchParams.get('url');
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail, token } = useContext(AuthContext);
   
   const [scanId, setScanId] = useState("Initializing...");
   const [progress, setProgress] = useState(0);
@@ -31,7 +31,8 @@ export default function ScanningPage() {
       if (userEmail) {
         const fetchHistory = async () => {
           try {
-            const res = await fetch(`http://localhost:3000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`);
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(`http://localhost:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
             const data = await res.json();
             if (data && data.length > 0) {
               const latestScan = data[0].scanId;

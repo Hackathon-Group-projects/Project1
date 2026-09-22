@@ -9,20 +9,27 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-  const { userEmail } = useContext(AuthContext);
+  const { userEmail, token } = useContext(AuthContext);
 
   useEffect(() => {
     fetchHistory();
-  }, [userEmail]);
+  }, [userEmail, token]);
 
   const fetchHistory = async () => {
     try {
       const queryParams = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
-      const res = await fetch(`http://localhost:3000/api/scan/history${queryParams}`);
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`http://localhost:5000/api/scan/history${queryParams}`, { headers });
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch history');
+      }
+      
       const data = await res.json();
-      setScans(data);
+      setScans(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch history', error);
+      setScans([]);
     } finally {
       setLoading(false);
     }
@@ -31,7 +38,8 @@ export default function HistoryPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this scan report?')) return;
     try {
-      await fetch(`http://localhost:3000/api/scan/${id}`, { method: 'DELETE' });
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      await fetch(`http://localhost:5000/api/scan/${id}`, { method: 'DELETE', headers });
       setScans(scans.filter(s => s._id !== id));
     } catch (error) {
       console.error('Failed to delete', error);
