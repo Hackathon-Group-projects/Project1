@@ -31,28 +31,32 @@ export default function Report() {
 
   React.useEffect(() => {
     const fetchData = async () => {
-      // If user is not logged in, ALWAYS show the "Not Found" card
-      if (!userEmail) {
-        setScanData({ notFound: true });
-        setLoading(false);
-        return;
-      }
-
       if (!id) {
-        try {
-          const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-          const histRes = await fetch(`http://${window.location.hostname}:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
-          const histData = await histRes.json();
-          if (histData && histData.length > 0) {
-            const latestScan = histData[0].scanId;
-            localStorage.setItem('lastScanId', latestScan);
-            navigate(`/report/${latestScan}`, { replace: true });
+        if (userEmail) {
+          // Logged in: fetch history and redirect to newest
+          try {
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const histRes = await fetch(`http://${window.location.hostname}:5000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
+            const histData = await histRes.json();
+            if (histData && histData.length > 0) {
+              const latestScan = histData[0].scanId;
+              localStorage.setItem('lastScanId', latestScan);
+              navigate(`/report/${latestScan}`, { replace: true });
+              return;
+            }
+          } catch (e) {
+            console.error("Failed to fetch history:", e);
+          }
+        } else {
+          // Logged out: use localStorage fallback
+          const lastScanId = localStorage.getItem('lastScanId');
+          if (lastScanId) {
+            navigate(`/report/${lastScanId}`, { replace: true });
             return;
           }
-        } catch (e) {
-          console.error("Failed to fetch history:", e);
         }
-
+        
+        // No history or last scan found
         setScanData({ notFound: true });
         setLoading(false);
         return;

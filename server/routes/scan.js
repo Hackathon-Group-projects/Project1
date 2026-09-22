@@ -195,7 +195,7 @@ scanRouter.get('/history', auth, async (req, res) => {
     const recentScans = await Scan.find({ status: 'completed', userId: req.user.id })
       .sort({ scannedAt: -1 })       // Newest scan first
       .limit(50)                      // Limit to last 50 scans
-      .select('scanId targetUrl targetHostname status scannedAt rawResults'); // Include rawResults to calculate score
+      .select('scanId targetUrl targetHostname status scannedAt rawResults.ssl rawResults.headers rawResults.cves'); // Exclude heavy nuclei data
     res.status(200).json(recentScans);
   } catch (error) {
     console.error('Failed to fetch scan history:', error.message);
