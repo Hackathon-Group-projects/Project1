@@ -8,6 +8,7 @@ export default function HistoryPage() {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteModalScanId, setDeleteModalScanId] = useState(null);
   const navigate = useNavigate();
   const { userEmail, token } = useContext(AuthContext);
 
@@ -35,16 +36,20 @@ export default function HistoryPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this scan report?')) return;
+  
+  const confirmDelete = async () => {
+    const id = deleteModalScanId;
+    if (!id) return;
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       await fetch(`http://${window.location.hostname}:4000/api/scan/${id}`, { method: 'DELETE', headers });
       setScans(scans.filter(s => s._id !== id));
+      setDeleteModalScanId(null);
     } catch (error) {
       console.error('Failed to delete', error);
     }
   };
+
 
   const calculateScore = (scan) => {
     if (!scan.rawResults) return 100;
@@ -194,7 +199,7 @@ export default function HistoryPage() {
                         <FiFileText className="text-[13px]" /> [View Report]
                       </Link>
                       <button 
-                        onClick={() => handleDelete(scan._id)}
+                        onClick={() => setDeleteModalScanId(scan._id)}
                         className="px-2 py-1.5 text-xs font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
                       >
                         [Delete]
@@ -214,6 +219,30 @@ export default function HistoryPage() {
         </div>
 
 
+
+        {/* Custom Delete Modal */}
+        {deleteModalScanId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-[400px] max-w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Scan Report</h3>
+              <p className="text-slate-500 text-sm mb-6">Are you sure you want to remove this report from your history? This action cannot be undone.</p>
+              <div className="flex items-center justify-end gap-3">
+                <button 
+                  onClick={() => setDeleteModalScanId(null)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm shadow-red-200 transition-all"
+                >
+                  Delete Report
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
