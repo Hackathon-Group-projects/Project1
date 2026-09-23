@@ -8,6 +8,7 @@ const ScanSchema = new Schema({
   userId: { type: ObjectId, ref: 'User', default: null },
   targetUrl: { type: String, required: true },
   targetHostname: { type: String, required: true },
+  isDeleted: { type: Boolean, default: false }, // Soft delete for frontend history
   status: {
     type: String,
     enum: ['queued', 'running', 'completed', 'failed', 'cached'],

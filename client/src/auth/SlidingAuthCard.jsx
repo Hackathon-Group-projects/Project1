@@ -133,9 +133,9 @@ export default function SlidingAuthCard() {
       const data = await res.json();
       
       if (res.ok) {
-        toast.success('Account created successfully!', toastConfig);
+        toast.success('Account created successfully!', { ...toastConfig, duration: 3000 });
         login(data.token, data.user.email, data.user.name);
-        navigate('/');
+        navigate('/dash');
       } else {
         toast.error(data.error || 'Registration failed', toastConfig);
       }
@@ -157,9 +157,9 @@ export default function SlidingAuthCard() {
       const data = await res.json();
       
       if (res.ok) {
-        toast.success('Signed in successfully!', toastConfig);
+        toast.success('Signed in successfully!', { ...toastConfig, duration: 3000 });
         login(data.token, data.user.email, data.user.name);
-        navigate('/');
+        navigate('/dash');
       } else {
         toast.error(data.error || 'Invalid credentials', toastConfig);
       }
