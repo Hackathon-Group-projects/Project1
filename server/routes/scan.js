@@ -184,12 +184,12 @@ function auth(req, res, next) {
   }
 }
 
-// Delete a scan history record (Protected)
+// Soft-delete a scan history record (Protected)
 scanRouter.delete('/:id', auth, async (req, res) => {
   try {
-    // Only allow deletion if it belongs to the logged-in user
-    await Scan.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-    res.json({ message: 'Scan deleted successfully' });
+    // Only allow soft deletion if it belongs to the logged-in user
+    await Scan.findOneAndUpdate({ _id: req.params.id, userId: req.user.id }, { isDeleted: true });
+    res.json({ message: 'Scan removed from history successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete scan' });
   }
@@ -201,7 +201,7 @@ scanRouter.get('/history', auth, async (req, res) => {
   try {
     // Fetch last 50 scans from MongoDB tied to the authenticated user ID
     // .select() avoids sending heavy rawResults in the list view
-    const recentScans = await Scan.find({ status: 'completed', userId: req.user.id })
+    const recentScans = await Scan.find({ status: 'completed', userId: req.user.id, isDeleted: { $ne: true } })
       .sort({ scannedAt: -1 })       // Newest scan first
       .limit(50)                      // Limit to last 50 scans
       .select('scanId targetUrl targetHostname status scannedAt rawResults.ssl rawResults.headers rawResults.cves rawResults.nuclei.severity'); // Exclude full nuclei but keep severity for scoring
