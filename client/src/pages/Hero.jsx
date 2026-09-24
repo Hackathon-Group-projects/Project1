@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { 
-  FiGlobe, 
-  FiSearch, 
-  FiArrowRight, 
-  FiLock, 
-  FiCode, 
-  FiCpu, 
-  FiAlertCircle, 
-  FiCrosshair 
+import {
+  FiGlobe,
+  FiSearch,
+  FiArrowRight,
+  FiLock,
+  FiCode,
+  FiCpu,
+  FiAlertCircle,
+  FiCrosshair
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { HiSparkles } from 'react-icons/hi2';
@@ -29,24 +29,38 @@ export default function Hero() {
     setConfirmed(true);
   };
 
-  const handleAuditSubmit = (e) => {
+  const handleAuditSubmit = async (e) => {
     e.preventDefault();
     if (!url || !confirmed) return;
-    
+
     let target = url.trim();
     if (!/^https?:\/\//i.test(target)) {
       target = 'https://' + target;
     }
-    
+
     try {
       new URL(target);
       // Extra validation to prevent things like 'https://www.npmjs' (missing TLD)
       if (!target.includes('.')) {
-         alert("Please enter a complete domain with an extension (e.g., domain.com)");
-         return;
+        alert("Please enter a complete domain with an extension (e.g., domain.com)");
+        return;
       }
+
+      // Check cache first as per blueprint
+      try {
+        const res = await fetch(`http://${window.location.hostname}:4000/api/scan/cache-check?url=${encodeURIComponent(target)}`);
+        const data = await res.json();
+
+        if (data.cached && data.scanId) {
+          window.location.href = `/report/${data.scanId}`;
+          return;
+        }
+      } catch (fetchErr) {
+        console.error("Cache check omitted/failed", fetchErr);
+      }
+
       window.location.href = `/scanning?url=${encodeURIComponent(target)}`;
-    } catch(err) {
+    } catch (err) {
       alert("Please enter a valid URL (e.g., example.com)");
     }
   };
@@ -59,7 +73,7 @@ export default function Hero() {
           <HiSparkles className="text-slate-600 text-[13px]" />
           <span>Passive, ethical, AI-powered scanning</span>
         </div>
-        
+
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">
           Audit Your Website's Security
         </h1>
@@ -115,17 +129,17 @@ export default function Hero() {
       {/* Demo Links */}
       <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 mb-10">
         <span>OR try demo:</span>
-        <button 
-          type="button" 
-          onClick={() => fillDemo('testphp.vulnweb.com')} 
+        <button
+          type="button"
+          onClick={() => fillDemo('testphp.vulnweb.com')}
           className="text-slate-700 hover:text-black font-mono underline decoration-slate-300 underline-offset-4 transition-colors"
         >
           testphp.vulnweb.com
         </button>
         <span>•</span>
-        <button 
-          type="button" 
-          onClick={() => fillDemo('demo.testfire.net')} 
+        <button
+          type="button"
+          onClick={() => fillDemo('demo.testfire.net')}
           className="text-slate-700 hover:text-black font-mono underline decoration-slate-300 underline-offset-4 transition-colors"
         >
           demo.testfire.net
@@ -159,8 +173,8 @@ export default function Hero() {
           {checkItems.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`p-3 rounded-lg bg-white/90 backdrop-blur-xs border border-slate-300 hover:border-slate-900 transition-all shadow-2xs ${idx === 4 ? 'col-span-2 sm:col-span-1' : ''}`}
               >
                 <div className="w-7 h-7 rounded bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 mb-2">
