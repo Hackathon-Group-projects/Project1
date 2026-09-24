@@ -24,7 +24,7 @@ import { AuthContext } from '../context/AuthContext';
 export default function Report() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userEmail, token } = React.useContext(AuthContext);
+  const { userEmail, token, logout } = React.useContext(AuthContext);
   
   // 1. Manage active tab state (defaults to 'overview')
   const [activeTab, setActiveTab] = useState('overview');
@@ -62,6 +62,13 @@ export default function Report() {
           try {
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
             const histRes = await fetch(`http://${window.location.hostname}:4000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
+            
+            if (histRes.status === 401) {
+              console.warn("Token expired. Logging out.");
+              logout(); // This will clear context and cause a re-render/re-fetch without userEmail
+              return;
+            }
+
             const histData = await histRes.json();
             if (histData && histData.length > 0) {
               const latestScan = histData[0].scanId;

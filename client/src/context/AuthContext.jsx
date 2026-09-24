@@ -25,8 +25,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
-    localStorage.removeItem('lastScanId');
-    localStorage.removeItem('lastScanUrl');
   };
 
   return (

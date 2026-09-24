@@ -10,7 +10,7 @@ export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteModalScanId, setDeleteModalScanId] = useState(null);
   const navigate = useNavigate();
-  const { userEmail, token } = useContext(AuthContext);
+  const { userEmail, token, logout } = useContext(AuthContext);
 
   useEffect(() => {
     fetchHistory();
@@ -22,6 +22,10 @@ export default function HistoryPage() {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await fetch(`http://${window.location.hostname}:4000/api/scan/history${queryParams}`, { headers });
       
+      if (res.status === 401) {
+        logout();
+        return;
+      }
       if (!res.ok) {
         throw new Error('Failed to fetch history');
       }
