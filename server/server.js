@@ -23,9 +23,9 @@ app.use(helmet({
       upgradeInsecureRequests: [],
     },
   },
-  crossOriginEmbedderPolicy: true,
-  crossOriginOpenerPolicy: true,
-  crossOriginResourcePolicy: { policy: "same-site" },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   dnsPrefetchControl: { allow: false },
   frameguard: { action: 'deny' },
   hidePoweredBy: true,
@@ -38,7 +38,7 @@ app.use(helmet({
 }));
 
 // Strict CORS implementation
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:4000'];
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:4000', 'http://localhost:3000'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
