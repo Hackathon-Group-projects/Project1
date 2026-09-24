@@ -99,6 +99,19 @@ export default function Report() {
     fetchData();
   }, [id, navigate, userEmail]);
 
+  const handleExportPdf = () => {
+    const element = document.getElementById('report-content');
+    if (!element) return;
+    const opt = {
+      margin: 0.3,
+      filename: `secura_report_${scanData.targetHostname || 'target'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  };
+
   if (loading) {
     return <div className="text-center py-20">Loading report data...</div>;
   }
@@ -231,7 +244,7 @@ export default function Report() {
     <div className="bg-tech-matrix text-zinc-800 font-sans text-[13px] antialiased min-h-screen flex flex-col selection:bg-[#8C95A6] selection:text-white">
       
       {/* Main Split Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
+      <main id="report-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
 
         {/* LEFT PANEL (30%) */}
         <aside className="w-full lg:w-[30%] flex flex-col gap-5 shrink-0">
@@ -335,7 +348,7 @@ export default function Report() {
                 <FiRotateCw className="text-[13px]" />
                 <span>Re-scan Target</span>
               </button>
-              <button className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-xs font-medium text-zinc-700 hover:bg-slate-50 transition-colors">
+              <button onClick={handleExportPdf} className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-slate-200 text-xs font-medium text-zinc-700 hover:bg-slate-50 transition-colors">
                 <FiFileText className="text-[13px]" />
                 <span>Export PDF</span>
               </button>
