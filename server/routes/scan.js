@@ -21,7 +21,7 @@ const User = require('../models/User');
 
 // Initiates the scan sequence and immediately returns a queue ID
 scanRouter.post('/start', async (req, res) => {
-  const { url, userId, userEmail } = req.body; 
+  const { url, userId, userEmail } = req.body;
 
   let actualUserId = userId || null;
   if (!actualUserId && userEmail) {
@@ -43,6 +43,18 @@ scanRouter.post('/start', async (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: 'Invalid URL provided.' });
   }
+
+  // --- PRE-CACHE FIX ---
+  // Check if we already have a successful scan for this URL within the last 24 hours
+  const cachedScan = await checkCache(targetUrl);
+  if (cachedScan) {
+    return res.status(200).json({
+      scanId: cachedScan.scanId,
+      status: 'cached',
+      message: 'Scan results served from cache'
+    });
+  }
+  // ---------------------
 
   const scanId = uuidv4();
 
