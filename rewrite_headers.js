@@ -1,4 +1,6 @@
-import React from 'react';
+const fs = require('fs');
+
+const headersCode = `import React from 'react';
 import { FiShield, FiAlertTriangle, FiCheck, FiX, FiInfo } from 'react-icons/fi';
 import { HiSparkles } from "react-icons/hi2";
 
@@ -65,10 +67,10 @@ export default function HeadersTab({ data, onSwitchTab }) {
                 <div className="mt-1 flex justify-end">
                   <button 
                     onClick={() => {
-                      
+                      if (onSwitchTab) onSwitchTab('ai');
                       setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('open-ai-modal', {
-                          detail: { keyword: h.header }
+                        window.dispatchEvent(new CustomEvent('open-secura-chat', {
+                          detail: { query: \`How do I fix the missing \${h.header} security header?\` }
                         }));
                       }, 100);
                     }}
@@ -113,3 +115,7 @@ export default function HeadersTab({ data, onSwitchTab }) {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('client/src/report/HeadersTab.jsx', headersCode);
+console.log('Headers rewriten.');

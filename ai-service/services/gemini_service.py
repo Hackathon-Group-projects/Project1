@@ -1,5 +1,7 @@
 import os
 import json
+import json_repair
+import re
 import logging
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -25,7 +27,7 @@ class GeminiService:
         # Flash model for structured JSON remediation reports
         # response_mime_type forces Gemini to return valid JSON — no hallucinated prose
         self._flash = genai.GenerativeModel(
-            model_name="gemini-3.7-flash",
+            model_name="gemini-3.5-flash-lite",
             generation_config=genai.GenerationConfig(
                 response_mime_type="application/json",
                 temperature=0.2,        # low temp = precise, deterministic
@@ -35,7 +37,7 @@ class GeminiService:
 
         # Flash model for conversational chat answers (Ask AI sidebar)
         self._chat = genai.GenerativeModel(
-            model_name="gemini-3.7-flash",
+            model_name="gemini-3.5-flash-lite",
             generation_config=genai.GenerationConfig(
                 temperature=0.3,
                 max_output_tokens=2048,
@@ -62,7 +64,9 @@ class GeminiService:
             if text.endswith("```"):
                 text = text[:-3]
 
-            parsed = json.loads(text.strip())
+            text = text.strip()
+            # Use json_repair for robust LLM JSON parsing
+            parsed = json_repair.loads(text)
             logger.info(
                 f"Gemini returned score={parsed.get('overallScore')} "
                 f"risk={parsed.get('riskLevel')} "

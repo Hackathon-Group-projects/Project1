@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const chatCode = `import React, { useState, useEffect } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
 import { FiX, FiSend, FiCopy, FiCheck } from 'react-icons/fi';
 import { TbRobot } from "react-icons/tb";
@@ -9,13 +11,13 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 const CopyableCodeBlock = ({ className, children, ...props }) => {
   const [copied, setCopied] = React.useState(false);
   const handleCopy = () => {
-    const textToCopy = String(children).replace(/\n$/, '');
+    const textToCopy = String(children).replace(/\\n$/, '');
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
   
-  const match = /language-(\w+)/.exec(className || '');
+  const match = /language-(\\w+)/.exec(className || '');
   const language = match ? match[1] : 'text';
 
   return (
@@ -28,7 +30,7 @@ const CopyableCodeBlock = ({ className, children, ...props }) => {
         </button>
       </div>
       <SyntaxHighlighter
-        children={String(children).replace(/\n$/, '')}
+        children={String(children).replace(/\\n$/, '')}
         style={vscDarkPlus}
         language={language}
         PreTag="div"
@@ -69,10 +71,10 @@ export default function AIChatWidget() {
       const scanContext = localStorage.getItem('lastScanId');
       const bodyPayload = {
         question: queryText,
-        report_context: scanContext ? `Focus on scan ID: ${scanContext}` : "General security context"
+        report_context: scanContext ? \`Focus on scan ID: \${scanContext}\` : "General security context"
       };
 
-      const res = await fetch(`http://${window.location.hostname}:8000/chat`, {
+      const res = await fetch(\`http://\${window.location.hostname}:8000/chat\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload)
@@ -103,9 +105,9 @@ export default function AIChatWidget() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-4 rounded-full bg-[#09090b] text-white font-semibold text-xs shadow-[0_8px_25px_rgba(9,9,11,0.3)] hover:bg-[#18181b] hover:scale-105 active:scale-95 transition-all duration-300 group ${
+        className={\`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-4 rounded-full bg-[#09090b] text-white font-semibold text-xs shadow-[0_8px_25px_rgba(9,9,11,0.3)] hover:bg-[#18181b] hover:scale-105 active:scale-95 transition-all duration-300 group \${
           isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'
-        }`}
+        }\`}
         aria-label="Open Secura AI Assistant"
       >
         <TbRobot className='text-[40px]'/>
@@ -119,9 +121,9 @@ export default function AIChatWidget() {
       )}
 
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={\`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out \${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        }\`}
       >
         <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
@@ -149,14 +151,14 @@ export default function AIChatWidget() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              className={\`flex flex-col \${msg.sender === 'user' ? 'items-end' : 'items-start'}\`}
             >
               <div
-                className={`max-w-[85%] p-3.5 rounded-2xl leading-relaxed ${
+                className={\`max-w-[85%] p-3.5 rounded-2xl leading-relaxed \${
                   msg.sender === 'user'
                     ? 'bg-[#09090b] text-white rounded-br-xs'
                     : 'bg-slate-100 text-zinc-800 border border-slate-200/60 rounded-bl-xs'
-                }`}
+                }\`}
               >
                 {msg.sender === 'ai' ? (
                   <div className="markdown-body-chat">
@@ -164,8 +166,8 @@ export default function AIChatWidget() {
                       components={{
                         p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                         code({node, className, children, ...props}) {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const hasNewline = String(children).includes('\n');
+                          const match = /language-(\\w+)/.exec(className || '');
+                          const hasNewline = String(children).includes('\\n');
                           const isBlock = match || hasNewline;
                           return isBlock ? (
                             <CopyableCodeBlock className={className} {...props}>{children}</CopyableCodeBlock>
@@ -219,3 +221,6 @@ export default function AIChatWidget() {
     </>
   );
 }
+`;
+
+fs.writeFileSync('client/src/components/AIChatWidget.jsx', chatCode);
