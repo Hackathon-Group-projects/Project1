@@ -34,10 +34,11 @@ function validateAndCleanUrl(rawUrl) {
       return { isValid: false, error: 'Scanning local/private addresses is not allowed.' };
     }
 
-    // Ye check add karo hostname validation ke baad:
-    // Hostname mein kam se kam ek dot (.) hona chahiye (e.g., "google.com")
-    if (!hostname.includes('.')) {
-    return { isValid: false, error: 'Please enter a valid domain like https://example.com' };
+    // Hostname mein kam se kam ek dot (.) hona chahiye aur valid TLD hona chahiye
+    // This regex ensures it ends with a dot and at least two letters (like .com, .org, .in)
+    const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(hostname)) {
+      return { isValid: false, error: 'Please enter a complete domain with an extension (e.g., example.com)' };
     }
 
     return { isValid: true, cleanedUrl: cleanedUrl };

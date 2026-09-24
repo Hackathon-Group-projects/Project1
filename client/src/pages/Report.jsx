@@ -16,6 +16,7 @@ import HeadersTab from '../report/HeadersTab';
 import SslTab from '../report/SslTab';
 import CvesTab from '../report/CvesTab';
 import NucleiTab from '../report/NucleiTab';
+import AiFixModal from '../components/AiFixModal';
 import AiFixTab from '../report/AiFixTab';
 import { AuthContext } from '../context/AuthContext';
 
@@ -26,7 +27,30 @@ export default function Report() {
   
   // 1. Manage active tab state (defaults to 'overview')
   const [activeTab, setActiveTab] = useState('overview');
+  const [globalIssue, setGlobalIssue] = useState(null);
   const [scanData, setScanData] = useState(null);
+
+  React.useEffect(() => {
+    const handleOpenModal = (e) => {
+      if (e.detail && e.detail.keyword && scanData?.aiReport?.vulnerabilities) {
+        const keyword = e.detail.keyword.toLowerCase();
+        const issuesToSearch = scanData.aiReport.vulnerabilities;
+        const matched = issuesToSearch.find(issue => 
+          (issue.title && issue.title.toLowerCase().includes(keyword)) ||
+          (issue.description && issue.description.toLowerCase().includes(keyword))
+        );
+        if (matched) {
+          setGlobalIssue(matched);
+        } else if (issuesToSearch.length > 0) {
+          setGlobalIssue(issuesToSearch[0]);
+        }
+      } else if (e.detail && e.detail.issue) {
+         setGlobalIssue(e.detail.issue);
+      }
+    };
+    window.addEventListener('open-ai-modal', handleOpenModal);
+    return () => window.removeEventListener('open-ai-modal', handleOpenModal);
+  }, [scanData]);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -111,19 +135,19 @@ export default function Report() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab data={scanData} />;
+        return <OverviewTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'headers':
-        return <HeadersTab data={scanData} />;
+        return <HeadersTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'ssl':
-        return <SslTab data={scanData} />;
+        return <SslTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'cves':
-        return <CvesTab data={scanData} />;
+        return <CvesTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'nuclei':
-        return <NucleiTab data={scanData} />;
+        return <NucleiTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'ai':
         return <AiFixTab data={scanData} />;
       default:
-        return <OverviewTab data={scanData} />;
+        return <OverviewTab data={scanData} onSwitchTab={setActiveTab} />;
     }
   };
 
@@ -140,7 +164,6 @@ export default function Report() {
     if (scanData.rawResults.headers && scanData.rawResults.headers.missing) {
       missingHeadersCount = scanData.rawResults.headers.missing.length;
       issues.medium += missingHeadersCount;
-      score -= missingHeadersCount * 2;
     }
     if (scanData.rawResults.cves && scanData.rawResults.cves.length) {
       scanData.rawResults.cves.forEach(tech => {
@@ -154,28 +177,32 @@ export default function Report() {
           });
         }
       });
-      score -= cvesCount * 5;
     }
     if (scanData.rawResults.nuclei && scanData.rawResults.nuclei.length) {
        nucleiCount = scanData.rawResults.nuclei.length;
        scanData.rawResults.nuclei.forEach(n => {
-         const sev = n.severity ? n.severity.toUpperCase() : 'INFO';
+         const sev = n.severity ? n.severity.toUpperCase() : 'LOW';
          if (sev === 'CRITICAL') issues.critical += 1;
          else if (sev === 'HIGH') issues.high += 1;
          else if (sev === 'MEDIUM') issues.medium += 1;
          else issues.low += 1;
        });
-       score -= nucleiCount * 10;
+    }
+    if (scanData.rawResults.ssl) {
+       const daysLeft = scanData.rawResults.ssl.daysRemaining;
+       if (daysLeft <= 0 || !scanData.rawResults.ssl.valid) {
+         issues.critical += 1;
+       }
+       if (scanData.rawResults.ssl.grade) {
+         sslGrade = scanData.rawResults.ssl.grade;
+       }
     }
     if (scanData.rawResults.tech && scanData.rawResults.tech.length > 0) {
       techStackName = scanData.rawResults.tech[0].name;
     }
-    if (scanData.rawResults.ssl && scanData.rawResults.ssl.grade) {
-      sslGrade = scanData.rawResults.ssl.grade;
-    }
   }
   
-  score = Math.max(0, score);
+  score = Math.max(0, 100 - (issues.critical * 25 + issues.high * 15 + issues.medium * 5 + issues.low * 2));
   const riskLevel = score > 80 ? 'LOW' : score > 50 ? 'MEDIUM' : 'HIGH';
 
   if (!scanData || scanData.error) {
@@ -385,7 +412,8 @@ export default function Report() {
 
         </section>
 
-      </main>
+            </main>
+      <AiFixModal issue={globalIssue} onClose={() => setGlobalIssue(null)} />
     </div>
   );
 }

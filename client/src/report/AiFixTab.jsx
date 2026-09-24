@@ -1,120 +1,201 @@
 import React, { useState } from 'react';
-import { FiArrowRight, FiCopy, FiCheck } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
+import { FiArrowRight, FiShield, FiCpu, FiAlertTriangle, FiCode, FiTerminal, FiX, FiCheck, FiCopy, FiClock, FiPercent, FiSend } from 'react-icons/fi';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export default function AiFixTab() {
-  const [question, setQuestion] = useState('');
-  const [response, setResponse] = useState('');
-  const [copiedHsts, setCopiedHsts] = useState(false);
+const CopyableCodeBlock = ({ className, children, ...props }) => {
+  const [copied, setCopied] = React.useState(false);
+  const handleCopy = () => {
+    const textToCopy = String(children).replace(/\n$/, '');
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : 'text';
+  return (
+    <div className="relative my-3 rounded-xl overflow-hidden shadow-sm border border-zinc-800">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+        <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-wider">{language}</span>
+        <button onClick={handleCopy} className="flex items-center gap-1.5 text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors bg-transparent border-none p-1">
+          {copied ? <FiCheck className="text-emerald-400" /> : <FiCopy />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+      <SyntaxHighlighter
+        children={String(children).replace(/\n$/, '')}
+        style={vscDarkPlus}
+        language={language}
+        PreTag="div"
+        customStyle={{ margin: 0, padding: '1rem', background: '#0B0D13', fontSize: '11px', lineHeight: '1.6' }}
+        {...props}
+      />
+    </div>
+  );
+};
 
-  const askAi = (e) => {
+function getParsedContent(description) {
+  if (!description) return { explanation: 'No details provided.', fixCode: '' };
+  
+  const codeIdx = description.indexOf('```');
+  
+  if (codeIdx === -1) {
+    // If no code blocks exist, just put the whole text in explanation
+    return { explanation: description, fixCode: 'No code patch provided. Review configuration manually.' };
+  }
+  
+  // Find the last paragraph break BEFORE the code block
+  let splitIdx = description.lastIndexOf('\n\n', codeIdx);
+  
+  // If there's no double newline, try a single newline
+  if (splitIdx === -1) {
+    splitIdx = description.lastIndexOf('\n', codeIdx);
+  }
+  
+  // If still no newline, just split exactly at the code block
+  if (splitIdx === -1 || splitIdx === 0) {
+    splitIdx = codeIdx;
+  }
+
+  const explanation = description.substring(0, splitIdx).trim();
+  const fixCode = description.substring(splitIdx).trim();
+
+  return { 
+    explanation: explanation || 'Security configuration issue detected.', 
+    fixCode: fixCode 
+  };
+}
+
+export default function AiFixTab({ data }) {
+      const [chatInput, setChatInput] = useState('');
+
+  
+
+  const handleAskAI = (e) => {
     e.preventDefault();
-    if (!question.trim()) return;
-    setResponse(`Analyzing OWASP guidelines for "${question}"...\n\nRecommendation: When deploying Content-Security-Policy in Express, generate random cryptographically strong nonces per request:\n\nconst nonce = crypto.randomBytes(16).toString('base64');\nres.locals.cspNonce = nonce;\n\nThen pass "'nonce-' + nonce" into your scriptSrc directive within helmet.contentSecurityPolicy.`);
+    if (!chatInput.trim()) return;
+    const event = new CustomEvent('open-secura-chat', {
+      detail: { query: chatInput }
+    });
+    window.dispatchEvent(event);
+    setChatInput('');
   };
 
-  const copyCode = (text, setter) => {
-    navigator.clipboard.writeText(text);
-    setter(true);
-    setTimeout(() => setter(false), 2000);
+  if (!data || !data.aiReport) {
+    return (
+      <div className="p-10 text-center flex flex-col items-center">
+        <HiSparkles className="text-4xl text-zinc-300 mb-3" />
+        <h3 className="text-lg font-bold text-zinc-800">No AI Report Found</h3>
+      </div>
+    );
+  }
+
+  const aiData = data.aiReport;
+  const issues = aiData.vulnerabilities || [];
+  
+  const openChatWithContext = (issueTitle) => {
+    const event = new CustomEvent('open-secura-chat', {
+      detail: { query: `How do I fix ${issueTitle}?` }
+    });
+    window.dispatchEvent(event);
   };
 
   return (
-    <div className="space-y-5 font-sans">
-      {/* Executive Summary Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center">
-            <HiSparkles className="text-[14px] text-cyan-400" />
-          </div>
-          <h3 className="text-sm font-bold text-zinc-950">Gemini 1.5 Executive Remediation Plan</h3>
-          <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-100 text-zinc-600 border border-slate-200">
-            OWASP GROUNDED
-          </span>
-        </div>
-        <p className="text-xs text-zinc-600 leading-relaxed mb-4">
-          This target exhibits critical exposure primarily due to missing CSP headers and outdated CMS software (WordPress 6.2). Resolving these two items will immediately recover <span className="font-bold text-emerald-600 font-mono">+40 security points</span>.
-        </p>
-
-        {/* Priority Timeline Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">Priority 1</span>
-            <div className="text-xs font-bold text-zinc-900 mt-0.5">Enforce CSP Header</div>
-            <div className="text-[11px] text-zinc-500 font-mono mt-1">Est. Time: 30 mins</div>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">Priority 2</span>
-            <div className="text-xs font-bold text-zinc-900 mt-0.5">Upgrade WP to 6.4+</div>
-            <div className="text-[11px] text-zinc-500 font-mono mt-1">Est. Time: 15 mins</div>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase">Priority 3</span>
-            <div className="text-xs font-bold text-zinc-900 mt-0.5">Restrict CORS Wildcard</div>
-            <div className="text-[11px] text-zinc-500 font-mono mt-1">Est. Time: 20 mins</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive RAG AI Assistant */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
-        <h4 className="text-xs font-bold text-zinc-900 mb-2 flex items-center gap-1.5">
-          <HiSparkles className="text-[#8C95A6]" />
-          <span>Ask Secura AI Assistant (RAG Grounded)</span>
-        </h4>
-        <form onSubmit={askAi} className="relative">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="e.g., How to configure CSP nonce with Express Helmet?"
-            className="w-full pl-3.5 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-[#8C95A6] focus:bg-white transition-all"
-          />
-          <button
-            type="submit"
-            className="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold flex items-center gap-1 transition-all"
-          >
-            <span>Ask</span>
-            <FiArrowRight className="text-[12px]" />
-          </button>
-        </form>
-
-        {response && (
-          <div className="mt-4 p-4 rounded-xl bg-[#0B0D13] border border-zinc-800 text-slate-200 font-mono text-xs space-y-2">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
-              <span className="text-cyan-400 flex items-center gap-1">
-                <HiSparkles className="text-[14px]" /> Secura Assistant Response
-              </span>
-              <span className="text-zinc-500">OWASP Source: CSP v2024</span>
+    <div className="space-y-6 font-sans pb-20 relative">
+      <div className="bg-[#09090b] rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-md">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/10 blur-3xl rounded-full" />
+        <div className="flex flex-col sm:flex-row justify-between gap-6 relative z-10">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/50 mb-3">
+              <HiSparkles className="text-[12px] text-cyan-400" />
+              <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-wider">Gemini 3.5 Lite Online</span>
             </div>
-            <p className="text-zinc-300 font-sans leading-relaxed whitespace-pre-line">{response}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Direct Copyable Code Patches */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Production Manifest Fixes</h4>
-          <span className="text-[10px] font-mono text-zinc-400">COPY & DEPLOY</span>
-        </div>
-
-        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
-          <span className="font-bold text-xs text-zinc-900 block mb-1">Nginx HSTS Enforcer</span>
-          <p className="text-xs text-zinc-500 mb-2 font-sans">Forces browser HTTPS transport for 1 year including subdomains.</p>
-          <div className="bg-[#0B0D13] p-3 rounded-lg text-slate-200 font-mono text-[11px] relative">
-            <code>add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;</code>
-            <button
-              type="button"
-              onClick={() => copyCode('add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;', setCopiedHsts)}
-              className="absolute top-2 right-2 px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] text-zinc-300 font-mono flex items-center gap-1"
-            >
-              {copiedHsts ? <FiCheck className="text-emerald-400" /> : <FiCopy />}
-              <span>{copiedHsts ? 'Copied' : 'Copy'}</span>
-            </button>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">Executive Remediation Plan</h1>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed">
+              AI-generated step-by-step instructions to patch detected vulnerabilities. 
+            </p>
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {issues.map((issue, idx) => {
+          const isCritical = issue.severity === 'CRITICAL' || issue.severity === 'HIGH';
+          return (
+            <div key={idx} className="bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-5 shadow-xs transition-all flex flex-col group relative overflow-hidden">
+              <div className={`absolute top-0 left-0 w-1 h-full ${isCritical ? 'bg-red-500' : 'bg-amber-500'}`} />
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${
+                    isCritical ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {issue.severity}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => openChatWithContext(issue.title || issue.type)}
+                  className="text-[10px] font-bold text-cyan-600 hover:text-cyan-700 flex items-center gap-1 bg-cyan-50 hover:bg-cyan-100 px-2 py-1 rounded-md transition-colors"
+                >
+                  <HiSparkles /> Ask AI
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-zinc-900 mb-2 leading-snug">{issue.title || (issue.type.replace(/_/g, ' ').toUpperCase())}</h3>
+              <p className="text-xs text-zinc-500 line-clamp-2 mb-4 leading-relaxed flex-1">
+                {issue.description}
+              </p>
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('open-ai-modal', { detail: { issue: issue } }))}
+                className="w-full mt-auto py-2 rounded-lg bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-[0.98] transition-all"
+              >
+                View in Details
+                <FiArrowRight className="text-xs text-slate-400" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      
+      {/* Custom AI Query Card */}
+      <div className="mt-8 bg-gradient-to-br from-zinc-900 to-black rounded-2xl p-6 sm:p-8 shadow-xl border border-zinc-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <HiSparkles className="text-8xl text-cyan-400" />
+        </div>
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/50 mb-3">
+              <HiSparkles className="text-[12px] text-cyan-400" />
+              <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-wider">Ask Custom Query</span>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Have a specific question about these patches?</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
+              Type your question below and Secura AI will answer it using your scan data as context. 
+            </p>
+          </div>
+          
+          <div className="flex-1 w-full">
+            <form onSubmit={handleAskAI} className="relative flex items-center w-full">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="E.g., How do I apply this fix in Docker?"
+                className="w-full pl-4 pr-12 py-3.5 bg-zinc-800/50 border border-zinc-700/80 rounded-xl text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 focus:bg-zinc-800 transition-all shadow-inner"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 w-9 h-9 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-zinc-900 flex items-center justify-center transition-all cursor-pointer shadow-md"
+              >
+                <FiSend className="text-sm" />
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      
     </div>
   );
 }
