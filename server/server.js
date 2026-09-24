@@ -6,12 +6,53 @@ const helmet = require('helmet');
 const mongoose = require('mongoose');
 const { exec } = require('child_process');
 const rateLimit = require('express-rate-limit');
+const events = require('events');
+
+// Anti-Memory Leak: Allow scaling EventEmitter during heavy load testing (SSE streams)
+events.EventEmitter.defaultMaxListeners = 150;
 
 const app = express();
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
+// Advanced API Hardening via Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: true,
+  crossOriginResourcePolicy: { policy: "same-site" },
+  dnsPrefetchControl: { allow: false },
+  frameguard: { action: 'deny' },
+  hidePoweredBy: true,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  ieNoOpen: true,
+  noSniff: true,
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xssFilter: true
+}));
+
+// Strict CORS implementation
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:4000'];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+  maxAge: 86400
+}));
+
+app.use(express.json({ limit: '10kb' })); // Payload size limit for hardening
 
 // Implementation of Rate Limiting 
 const apiLimiter = rateLimit({
