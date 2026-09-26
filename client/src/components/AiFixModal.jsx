@@ -208,7 +208,10 @@ export default function AiFixModal({ issue, onClose }) {
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">GitHub Repo URL</label>
                     <input
-                      type="text"
+                      name="github-repo-url-field"
+                      type="url"
+                      autoComplete="off"
+                      spellCheck="false"
                       placeholder="https://github.com/username/repo-name"
                       className="w-full text-xs px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       value={formData.repoUrl}
@@ -218,12 +221,17 @@ export default function AiFixModal({ issue, onClose }) {
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">Personal Access Token (PAT)</label>
                     <input
+                      name="github-pat-token-field"
                       type="password"
+                      autoComplete="new-password"
                       placeholder="ghp_xxxxxxxxxxxx"
                       className="w-full text-xs px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                       value={formData.patToken}
                       onChange={(e) => setFormData({ ...formData, patToken: e.target.value })}
                     />
+                    <p className="mt-1.5 text-[9px] text-slate-500">
+                      Format: `ghp_...` | Get one from <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">GitHub Settings &rarr; Developer settings &rarr; Tokens (classic)</a>. Make sure to check the <b>repo</b> scope.
+                    </p>
                   </div>
 
                   {prResult && (
