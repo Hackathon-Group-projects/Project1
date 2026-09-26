@@ -88,6 +88,12 @@ Return ONLY the following JSON. No markdown, no extra text, no explanation — O
       "description": "<detailed fix with exact copy-paste code in the correct language — Nginx, Express.js, WordPress PHP, Apache, or bash>"
     }}
   ],
+  "corrections": [
+    {{
+      "filePath": "<relative path to the file that needs correction, e.g. 'src/path/to/vulnerable/file.js'>",
+      "replacementCode": "<exact updated/fixed code for this file>"
+    }}
+  ],
   "generatedAt": "{now_iso}",
   "grade": "<single letter A/B/C/D/F — {grade_note}>"
 }}

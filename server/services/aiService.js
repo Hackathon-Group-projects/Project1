@@ -55,7 +55,8 @@ async function generateAiReport(rawScanData) {
         category: 'AI Recommendation',
         severity: 'MEDIUM',
         description: r.description
-      })) : []
+      })) : [],
+      corrections: aiReport.corrections || []
     };
 
   } catch (error) {
