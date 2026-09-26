@@ -46,14 +46,14 @@ scanRouter.post('/start', async (req, res) => {
 
   // --- PRE-CACHE FIX ---
   // Check if we already have a successful scan for this URL within the last 24 hours
-  const cachedScan = await checkCache(targetUrl);
-  if (cachedScan) {
-    return res.status(200).json({
-      scanId: cachedScan.scanId,
-      status: 'cached',
-      message: 'Scan results served from cache'
-    });
-  }
+  // const cachedScan = await checkCache(targetUrl);
+  // if (cachedScan) {
+  //   return res.status(200).json({
+  //     scanId: cachedScan.scanId,
+  //     status: 'cached',
+  //     message: 'Scan results served from cache'
+  //   });
+  // }
   // ---------------------
 
   const scanId = uuidv4();

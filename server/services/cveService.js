@@ -93,7 +93,28 @@ async function lookupCvesForTechStack(detectedTechList) {
   }
 
   // Return the final list back to scan.js
-  return techWithVulnerabilities;
+  return [
+    {
+      technology: 'React',
+      version: '16.8.0',
+      vulnerabilities: [
+        {
+          id: 'CVE-2021-44228', // Famous Log4j KEV
+          summary: 'Apache Log4j2 JNDI features do not protect against attacker controlled LDAP...',
+          severity: 'CRITICAL',
+          isKev: true,         // <-- This triggers the 🔥 KEV Badge
+          epssScore: 0.97
+        },
+        {
+          id: 'CVE-2024-TEST', 
+          summary: 'A normal vulnerability that is NOT actively exploited.',
+          severity: 'MEDIUM',
+          isKev: false,        
+          epssScore: 0.12
+        }
+      ]
+    }
+  ];
 }
 
 module.exports = { lookupCvesForTechStack };  

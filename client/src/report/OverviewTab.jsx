@@ -9,6 +9,7 @@ export default function OverviewTab({ data, onSwitchTab }) {
   let highCount = 0;
   let mediumCount = 0;
   let lowCount = 0;
+  let kevCount = 0;
 
     // 1. Headers
   if (data.rawResults?.headers?.missing) {
@@ -31,6 +32,8 @@ export default function OverviewTab({ data, onSwitchTab }) {
           else if (s === 'HIGH') highCount++;
           else if (s === 'MEDIUM') mediumCount++;
           else lowCount++;
+
+          if (vuln.isKev) kevCount++;
         });
       }
     });
@@ -119,6 +122,28 @@ export default function OverviewTab({ data, onSwitchTab }) {
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
           </div>
         </div>
+        
+        {/* NAYA: CISA KEV Alert Card (Moved outside the grid to span full width) */}
+        {kevCount > 0 && (
+          <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-red-950 to-red-900 border border-red-800 flex flex-col sm:flex-row sm:items-center justify-between text-white shadow-lg relative overflow-hidden">
+            
+            {/* Glowing background effect */}
+            <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-32 h-32 bg-red-600 rounded-full blur-[60px] opacity-40"></div>
+            
+            <div className="flex items-center gap-4 relative z-10 mb-3 sm:mb-0">
+              <span className="text-3xl animate-pulse">🔥</span>
+              <div>
+                <div className="text-[12px] font-bold uppercase tracking-widest text-red-300">Actively Exploited Threats</div>
+                <div className="text-sm font-medium text-red-100/80 mt-1">CISA KEV (Known Exploited Vulnerabilities) detected in stack</div>
+              </div>
+            </div>
+            
+            <div className="relative z-10 flex items-baseline gap-2 self-end sm:self-auto">
+              <span className="text-5xl font-extrabold font-mono text-white">{kevCount}</span>
+              <span className="text-xs font-bold text-red-400 uppercase tracking-wide">Threats</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Remediation Call-To-Action */}

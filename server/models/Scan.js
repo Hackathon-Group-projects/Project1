@@ -47,7 +47,9 @@ const ScanSchema = new Schema({
       vulnerabilities: [{
         id: { type: String },
         summary: { type: String },
-        severity: { type: String }
+        severity: { type: String },
+        isKev: { type: Boolean, default: false },
+        epssScore: { type: Number }
       }]
     }],
     nuclei: [{
