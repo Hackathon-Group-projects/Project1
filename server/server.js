@@ -74,6 +74,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Register API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/scan', require('./routes/scan'));
+app.use('/api/github', require('./routes/github'));
 
 
 // Global error handler - catches any unhandled errors in the entire app
