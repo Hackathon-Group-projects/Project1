@@ -136,7 +136,7 @@ async function checkTechStack(websiteUrl) {
     const websiteResponse = await fetch(websiteUrl, {
       method: 'GET',
       redirect: 'follow',
-      timeout: 8000,
+      timeout: 30000,
       headers: {
         // Act like a real browser so the server doesn't block us
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

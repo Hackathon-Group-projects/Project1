@@ -13,7 +13,7 @@ const SECURITY_HEADERS_TO_CHECK = {
 async function checkHeaders(websiteUrl) {
   try {
     // Send a lightweight "HEAD" request just to get the headers without downloading the whole website body
-    const websiteResponse = await fetch(websiteUrl, { method: 'HEAD', redirect: 'follow', timeout: 5000 });
+    const websiteResponse = await fetch(websiteUrl, { method: 'HEAD', redirect: 'follow', timeout: 30000 });
     
     // Convert the raw headers from the response into a simple, searchable JavaScript object
     const websiteHeaders = Object.fromEntries(websiteResponse.headers.entries());

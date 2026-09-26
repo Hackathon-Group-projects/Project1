@@ -62,6 +62,18 @@ export default function CvesTab({ data, onSwitchTab }) {
                   <a href={`https://osv.dev/vulnerability/${cve.id}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-900 hover:text-blue-600 flex items-center gap-1 font-mono transition-colors">
                     {cve.id} <FiExternalLink className="text-[11px]" />
                   </a>
+
+                  {cve.isKev && (
+                    <span className="ml-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-red-100 text-red-800 border border-red-300 shadow-sm animate-pulse">
+                      🔥 CISA KEV (Known Exploited)
+                    </span>
+                  )}
+                  
+                  {cve.epssScore && (
+                    <span className="ml-2 px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono font-bold border border-slate-200">
+                      EPSS: {(cve.epssScore * 100).toFixed(2)}%
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg">
