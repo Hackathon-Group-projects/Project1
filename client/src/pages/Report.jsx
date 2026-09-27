@@ -8,7 +8,8 @@ import {
   FiCpu, 
   FiAlertCircle, 
   FiCrosshair,
-  FiRotateCw
+  FiRotateCw,
+  FiActivity
 } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
 
@@ -16,6 +17,7 @@ import OverviewTab from '../report/OverviewTab';
 import HeadersTab from '../report/HeadersTab';
 import SslTab from '../report/SslTab';
 import CvesTab from '../report/CvesTab';
+import AttackPathTab from '../report/AttackPathTab';
 import NucleiTab from '../report/NucleiTab';
 import AiFixModal from '../components/AiFixModal';
 import AiFixTab from '../report/AiFixTab';
@@ -309,6 +311,8 @@ const handleExportPdf = () => {
         return <SslTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'cves':
         return <CvesTab data={scanData} onSwitchTab={setActiveTab} />;
+      case 'attack-path':
+        return <AttackPathTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'nuclei':
         return <NucleiTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'ai':
@@ -549,6 +553,16 @@ const handleExportPdf = () => {
               }`}
             >
               CVEs ({cvesCount})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('attack-path')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'attack-path' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
+            >
+              <FiActivity className="text-[13px] text-cyan-400" />
+              <span>Attack Path</span>
             </button>
 
             <button

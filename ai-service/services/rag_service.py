@@ -60,10 +60,8 @@ class RAGService:
 
         self._client = chromadb.PersistentClient(path=db_path)
 
-        # Collection uses the document embedding function by default
         self._collection = self._client.get_or_create_collection(
             name="security_knowledge",
-            embedding_function=self._doc_embed_fn,
             metadata={"hnsw:space": "cosine"}
         )
 

@@ -90,7 +90,7 @@ export default function AiFixModal({ issue, onClose }) {
     try {
       const fixData = getPrFixData(issue.description, issue.title || issue.type || 'fix');
 
-      const response = await fetch('http://localhost:3000/api/github/create-pr', {
+      const response = await fetch(`http://${window.location.hostname}:4000/api/github/create-pr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,10 +105,10 @@ export default function AiFixModal({ issue, onClose }) {
       if (response.ok) {
         setPrResult({ success: true, url: data.prUrl });
       } else {
-        setPrResult({ success: false, error: data.error || 'Failed to create PR' });
+        setPrResult({ success: false, error: data.message ? `${data.error}: ${data.message}` : (data.error || 'Failed to create PR') });
       }
     } catch (error) {
-      setPrResult({ success: false, error: 'Network error occurred' });
+      setPrResult({ success: false, error: error.message || 'Network error occurred' });
     } finally {
       setIsPrLoading(false);
     }
