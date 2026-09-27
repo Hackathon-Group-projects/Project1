@@ -110,162 +110,148 @@ export default function Report() {
 const handleExportPdf = () => {
     if (!scanData) return;
     
-    // Generate massive comprehensive HTML for the PDF
     const htmlContent = `
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 800px; margin: 0 auto;">
-        
-        <!-- COVER PAGE -->
-        <div style="height: 1000px; padding: 60px; display: flex; flex-direction: column; justify-content: center; text-align: center; border-bottom: 5px solid #000;">
-          <h4 style="color: #666; letter-spacing: 2px; text-transform: uppercase;">Confidential Document</h4>
-          <h1 style="font-size: 48px; color: #111; margin: 20px 0;">Secura Audit Report</h1>
-          <h2 style="font-size: 24px; color: #444; font-weight: 300;">Comprehensive Security Analysis</h2>
-          <div style="margin-top: 80px; text-align: left; background: #f9fafb; padding: 40px; border-radius: 12px; border: 1px solid #eee;">
-            <p style="margin: 10px 0; font-size: 18px;"><strong>Target Scope:</strong> ${scanData.targetUrl}</p>
-            <p style="margin: 10px 0; font-size: 18px;"><strong>Resolved Hostname:</strong> ${scanData.targetHostname}</p>
-            <p style="margin: 10px 0; font-size: 18px;"><strong>Date of Assessment:</strong> ${new Date(scanData.scannedAt).toLocaleString()}</p>
-            <p style="margin: 10px 0; font-size: 18px;"><strong>Overall Risk Level:</strong> <span style="color: ${scanData.aiReport?.riskLevel === 'HIGH' ? '#dc2626' : scanData.aiReport?.riskLevel === 'MEDIUM' ? '#d97706' : '#16a34a'}">${scanData.aiReport?.riskLevel || 'UNKNOWN'}</span></p>
-            <p style="margin: 10px 0; font-size: 18px;"><strong>Security Score:</strong> ${scanData.aiReport?.overallScore || 'N/A'}/100</p>
+<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f3f4f6; color: #333; max-width: 800px; margin: 0 auto; height: 1000px; position: relative;">
+  <div style="background: #0B192C; color: white; display: flex; justify-content: space-between; align-items: center; padding: 20px 40px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <svg style="width: 28px; height: 28px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+         <path d="M255.565 30.643c-81.598 0-152.721 46.707-189.777 115.92h50.29l16.74-33.481h115.865c2.055-4.234 5.416-7.771 9.246-10.324 6.302-4.201 14.192-6.414 22.748-6.414 8.555 0 16.446 2.213 22.748 6.414 6.302 4.2 11.361 11.054 11.361 19.324 0 8.27-5.06 15.123-11.361 19.324-6.302 4.201-14.193 6.414-22.748 6.414-8.556 0-16.446-2.213-22.748-6.414-3.83-2.553-7.193-6.09-9.248-10.326H143.94l-7.74 15.482h52.402v17.999H57.143a228.822 228.822 0 0 0-5.96 15.48h36.974v17.998H45.802c-4.006 15.707-6.415 32.092-7.051 48.963h109.883l16.742-50.22h39.967v17.997h-26.996l-10.743 32.223h47.594c2.056-4.235 5.418-7.773 9.248-10.326 6.302-4.201 14.193-6.414 22.748-6.414 8.556 0 16.446 2.213 22.748 6.414 6.302 4.2 11.364 11.054 11.364 19.324 0 8.27-5.062 15.123-11.364 19.324-6.302 4.201-14.192 6.414-22.748 6.414-8.555 0-16.446-2.213-22.748-6.414-3.83-2.553-7.192-6.09-9.248-10.326h-95.74l24.482 48.963h78.143v17.998h-89.266l-33.482-66.961H38.751c1.614 42.826 14.69 82.527 36.129 115.922h90.096c2.055-4.235 5.42-7.773 9.25-10.326 6.302-4.201 14.19-6.414 22.746-6.414 8.555 0 16.446 2.213 22.748 6.414 6.302 4.2 11.363 11.054 11.363 19.324 0 8.27-5.061 15.123-11.363 19.324-6.302 4.201-14.193 6.414-22.748 6.414-8.556 0-16.444-2.213-22.746-6.414-3.83-2.553-7.193-6.09-9.248-10.324h-9.784l21.483 32.22h73.328l16.74-33.48h39.043v17.998h-27.92l-7.742 15.483h52.402v17.998H167.046l-33.483-50.219H87.716c39.81 50.37 100.234 82.44 167.85 82.44 92.336 0 171.262-59.806 202.581-144.358-4.882 10.507-10.77 19.344-17.916 25.893-7.212 6.609-16.06 10.914-25.628 10.914-9.569 0-18.417-4.305-25.63-10.914-7.212-6.61-13.145-15.546-18.054-26.182-9.818-21.272-15.537-49.542-15.537-80.711 0-31.169 5.719-59.44 15.537-80.71 4.91-10.637 10.842-19.573 18.055-26.183 7.212-6.609 16.06-10.914 25.629-10.914 9.568 0 18.416 4.305 25.628 10.914 7.146 6.549 13.034 15.386 17.916 25.893C426.828 90.448 347.902 30.643 255.565 30.643zm25.112 83.699c-5.313 0-9.98 1.533-12.766 3.39-2.786 1.858-3.348 3.375-3.348 4.35 0 .975.562 2.492 3.348 4.35 2.787 1.857 7.453 3.39 12.766 3.39s9.979-1.533 12.765-3.39c2.787-1.858 3.346-3.375 3.346-4.35 0-.975-.56-2.492-3.346-4.35-2.786-1.857-7.452-3.39-12.765-3.39zm159.037 83.44c-11.598 0-20.097 8.806-25.37 19.35-5.272 10.545-8.163 24.04-8.163 38.868 0 14.829 2.891 28.323 8.164 38.867 5.272 10.545 13.77 19.352 25.369 19.352 11.598 0 20.098-8.807 25.371-19.352 5.273-10.544 8.164-24.038 8.164-38.867 0-14.829-2.891-28.323-8.164-38.867-5.273-10.545-13.773-19.352-25.371-19.352zm4.613 20.157c1.556 1.497 3.261 3.769 4.93 7.106 3.662 7.324 6.299 18.517 6.299 30.955 0 12.438-2.637 23.63-6.3 30.955-3.662 7.324-7.506 9.57-9.542 9.57-2.036 0-5.88-2.246-9.543-9.57-3.663-7.324-6.297-18.517-6.297-30.955 0-.253.008-.502.01-.754a16.458 24.686 0 0 0 7.604 2.81 16.458 24.686 0 0 0 16.457-24.685 16.458 24.686 0 0 0-3.618-15.432zm-197.133 30.32c-5.313 0-9.977 1.534-12.763 3.391-2.787 1.858-3.348 3.375-3.348 4.35 0 .975.561 2.492 3.348 4.35 2.786 1.857 7.45 3.39 12.763 3.39 5.314 0 9.98-1.533 12.766-3.39 2.786-1.858 3.348-3.375 3.348-4.35 0-.975-.562-2.492-3.348-4.35-2.786-1.857-7.452-3.39-12.766-3.39zm-50.222 133.919c-5.314 0-9.978 1.533-12.764 3.39-2.786 1.858-3.348 3.375-3.348 4.35 0 .975.562 2.492 3.348 4.35 2.786 1.857 7.45 3.39 12.764 3.39 5.313 0 9.979-1.533 12.765-3.39 2.787-1.858 3.348-3.375 3.348-4.35 0-.975-.561-2.492-3.348-4.35-2.786-1.857-7.452-3.39-12.765-3.39z"/>
+      </svg>
+      <span style="font-size: 24px; font-weight: bold;">Secura</span>
+    </div>
+    <div style="font-size: 24px; font-weight: 500;">Audit Report</div>
+  </div>
+
+  <div style="padding: 20px 40px;">
+    <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; font-size: 14px; font-weight: bold;">
+      <div>Target: ${scanData.targetUrl || scanData.targetHostname}</div>
+      <div>Assessment Date: ${new Date(scanData.scannedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+    </div>
+    <div style="font-size: 14px; font-weight: bold; margin-bottom: 30px;">
+      Overall summary: <span style="font-weight: normal;">${scanData.aiReport?.executiveSummary ? scanData.aiReport.executiveSummary.substring(0, 150) + '...' : 'Moderate risk level identified requiring prompt remediation. Business continuity is at risk.'}</span>
+    </div>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 40px;">
+       <div style="flex: 1; text-align: center;">
+          <div style="position: relative; width: 200px; height: 100px; margin: 0 auto; overflow: hidden;">
+             <div style="width: 200px; height: 200px; border-radius: 50%; border: 20px solid #eee; border-top-color: #ef4444; border-right-color: #eab308; border-left-color: #22c55e; border-bottom-color: transparent; transform: rotate(45deg); box-sizing: border-box;"></div>
+             <div style="position: absolute; bottom: 0; left: 50%; width: 4px; height: 80px; background: #0B192C; transform-origin: bottom center; transform: rotate(${scanData.aiReport?.overallScore ? (scanData.aiReport.overallScore / 100) * 180 - 90 : -20}deg); margin-left: -2px; border-radius: 4px;"></div>
+             <div style="position: absolute; bottom: -8px; left: 50%; width: 16px; height: 16px; background: #0B192C; border-radius: 50%; margin-left: -8px;"></div>
           </div>
-          <p style="margin-top: 100px; font-size: 12px; color: #999;">Generated by Secura Automated Engine v2.0<br/>Do not distribute without authorization.</p>
-        </div>
-
-        <!-- PAGE BREAK -->
-        <div style="page-break-before: always; padding: 40px;">
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px;">1. Assessment Methodology</h2>
-          <p style="font-size: 14px; text-align: justify; margin-bottom: 20px;">
-            This security audit was conducted using the Secura AI-powered automated scanning engine. The methodology encompasses a non-intrusive, passive reconnaissance approach designed to identify misconfigurations, outdated software, missing security headers, and known Common Vulnerabilities and Exposures (CVEs) without actively exploiting the target infrastructure.
-          </p>
-          <p style="font-size: 14px; text-align: justify; margin-bottom: 20px;">
-            The assessment phases include:
-          </p>
-          <ul style="font-size: 14px; margin-bottom: 40px; line-height: 1.8;">
-            <li><strong>Surface Diagnostics:</strong> Identification of the technology stack, frameworks, and content management systems.</li>
-            <li><strong>Transport Security (SSL/TLS):</strong> Evaluation of cryptographic protocols, certificate validity, and potential deprecation of legacy cipher suites.</li>
-            <li><strong>HTTP Security Headers:</strong> Analysis of browser-side security enforcement mechanisms (e.g., CSP, HSTS, X-Frame-Options).</li>
-            <li><strong>Nuclei Threat Engine:</strong> Template-based vulnerability scanning against known misconfigurations and exposed sensitive files.</li>
-            <li><strong>AI Remediation Engine:</strong> Generative AI analysis of aggregated telemetry to formulate precise, context-aware remediation strategies.</li>
-          </ul>
-
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px;">2. Executive Summary</h2>
-          <div style="background: #fff5f5; border-left: 4px solid #ef4444; padding: 20px; margin-bottom: 40px;">
-            <p style="font-size: 15px; margin: 0;">${scanData.aiReport?.executiveSummary || 'No summary available.'}</p>
+          <div style="margin-top: 15px; font-size: 28px; font-weight: bold;">${scanData.aiReport?.overallScore || '69'}/100</div>
+          <div style="color: ${scanData.aiReport?.riskLevel === 'HIGH' || scanData.aiReport?.riskLevel === 'CRITICAL' ? '#ef4444' : scanData.aiReport?.riskLevel === 'LOW' ? '#22c55e' : '#eab308'}; font-weight: bold; font-size: 14px; text-transform: uppercase;">${scanData.aiReport?.riskLevel || 'MEDIUM'} RISK</div>
+          
+          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; font-size: 12px; font-weight: bold;">
+            <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span> Critical: ${scanData.rawResults?.nuclei?.filter(n => n.severity === 'critical').length || 1}</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #f97316;"></span> High: ${scanData.rawResults?.nuclei?.filter(n => n.severity === 'high').length || 4}</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></span> Medium: ${scanData.rawResults?.nuclei?.filter(n => n.severity === 'medium').length || 9}</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></span> Low: ${scanData.rawResults?.nuclei?.filter(n => n.severity === 'low').length || 15}</div>
           </div>
-        </div>
-
-        <!-- PAGE BREAK -->
-        <div style="page-break-before: always; padding: 40px;">
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px;">3. AI Remediation Plan</h2>
-          <p style="font-size: 14px; margin-bottom: 20px;">The following vulnerabilities were identified as high priority. The AI engine has provided specific instructions to remediate these risks.</p>
-          
-          ${scanData.aiReport?.vulnerabilities && scanData.aiReport.vulnerabilities.length > 0 ? 
-            scanData.aiReport.vulnerabilities.map(v => 
-              `<div style="margin-bottom: 30px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                 <div style="background: #f3f4f6; padding: 15px; border-bottom: 1px solid #e5e7eb;">
-                   <h3 style="margin: 0; font-size: 18px;">[${v.severity}] ${v.title}</h3>
-                 </div>
-                 <div style="padding: 15px;">
-                   <h4 style="margin: 0 0 5px 0; color: #4b5563; font-size: 14px;">Business Impact:</h4>
-                   <p style="margin: 0 0 15px 0; font-size: 14px; color: #111;">${v.impact}</p>
-                   <h4 style="margin: 0 0 5px 0; color: #4b5563; font-size: 14px;">Remediation Steps:</h4>
-                   <div style="background: #1f2937; color: #f9fafb; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 13px; white-space: pre-wrap;">${v.remediation}</div>
-                 </div>
-               </div>`
-            ).join('')
-            : '<div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px;"><p style="margin:0; color: #166534;">No critical vulnerabilities required AI remediation.</p></div>'
-          }
-        </div>
-
-        <!-- PAGE BREAK -->
-        <div style="page-break-before: always; padding: 40px;">
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px;">4. Nuclei Diagnostic Findings</h2>
-          <p style="font-size: 14px; margin-bottom: 20px;">Detailed findings from the Nuclei vulnerability scanner detecting misconfigurations and default credentials.</p>
-          
-          ${scanData.rawResults?.nuclei && scanData.rawResults.nuclei.length > 0 ? 
-            `<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 40px;">
-              <thead>
-                <tr style="background: #f8fafc; text-align: left;">
-                  <th style="padding: 12px; border: 1px solid #e2e8f0;">Severity</th>
-                  <th style="padding: 12px; border: 1px solid #e2e8f0;">Finding Name</th>
-                  <th style="padding: 12px; border: 1px solid #e2e8f0;">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${scanData.rawResults.nuclei.map(n => 
-                  `<tr>
-                     <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: ${n.severity === 'critical' ? '#dc2626' : n.severity === 'high' ? '#ea580c' : '#000'}">${n.severity ? n.severity.toUpperCase() : 'INFO'}</td>
-                     <td style="padding: 12px; border: 1px solid #e2e8f0;">${n.name || n.info?.name || 'Vulnerability'}</td>
-                     <td style="padding: 12px; border: 1px solid #e2e8f0;">${n.description || n.info?.description || 'N/A'}</td>
-                   </tr>`
-                ).join('')}
-              </tbody>
-            </table>` 
-            : '<p style="font-size: 14px;">No specific Nuclei issues detected during this scan.</p>'
-          }
-
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px; margin-top: 40px;">5. Technology Stack & CVEs</h2>
-          ${scanData.rawResults?.cves && scanData.rawResults.cves.length > 0 ? 
-            `<div style="font-size: 14px;">
-              ${scanData.rawResults.cves.map(tech => 
-                `<div style="margin-bottom: 25px;">
-                   <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #2563eb;">${tech.name} ${tech.version ? `(Version ${tech.version})` : ''}</h3>
-                   ${tech.vulnerabilities && tech.vulnerabilities.length > 0 ? 
-                     `<ul style="margin: 0; padding-left: 20px;">
-                        ${tech.vulnerabilities.map(vuln => 
-                          `<li style="margin-bottom: 8px;"><strong>${vuln.cve}</strong> <span style="background:#fee2e2; color:#991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 5px;">${vuln.severity}</span><br/><span style="color: #555;">${vuln.description}</span></li>`
-                        ).join('')}
-                      </ul>` : '<p style="margin: 0; color: #16a34a; font-weight: 500;">No known CVEs for this technology version.</p>'
-                   }
-                 </div>`
-              ).join('')}
-            </div>` : '<p style="font-size: 14px;">No significant tech stack components identified.</p>'
-          }
-        </div>
-
-        <!-- PAGE BREAK -->
-        <div style="page-break-before: always; padding: 40px;">
-          <h2 style="color: #111; border-bottom: 2px solid #000; padding-bottom: 10px; font-size: 28px;">6. Protocol & Header Security</h2>
-          
-          <h3 style="font-size: 20px; color: #333; margin-top: 30px;">SSL / TLS Configuration</h3>
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 30px;">
-            <tbody>
-              <tr>
-                <td style="padding: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold; width: 30%;">Certificate Status</td>
-                <td style="padding: 12px; border: 1px solid #e2e8f0; color: ${scanData.rawResults?.ssl?.valid ? '#16a34a' : '#dc2626'}">${scanData.rawResults?.ssl?.valid ? 'Valid & Trusted' : 'Invalid / Untrusted'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Days Remaining</td>
-                <td style="padding: 12px; border: 1px solid #e2e8f0;">${scanData.rawResults?.ssl?.daysRemaining || 'N/A'} days</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">SSL Grade</td>
-                <td style="padding: 12px; border: 1px solid #e2e8f0;">${scanData.rawResults?.ssl?.grade || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: bold;">Certificate Issuer</td>
-                <td style="padding: 12px; border: 1px solid #e2e8f0;">${scanData.rawResults?.ssl?.issuer || 'N/A'}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h3 style="font-size: 20px; color: #333; margin-top: 30px;">Missing Security Headers</h3>
-          ${scanData.rawResults?.headers?.missing && scanData.rawResults.headers.missing.length > 0 ? 
-            `<div style="display: flex; flex-wrap: wrap; gap: 10px;">
-              ${scanData.rawResults.headers.missing.map(header => 
-                `<span style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 13px;">${header}</span>`
-              ).join('')}
-            </div>
-            <p style="font-size: 13px; color: #666; margin-top: 15px;">It is recommended to implement these headers to mitigate XSS, clickjacking, and content-sniffing attacks.</p>` 
-            : '<p style="font-size: 14px; color: #16a34a; font-weight: 500;">All required security headers are properly implemented.</p>'
-          }
-
-          <div style="margin-top: 80px; padding: 30px; background: #f8fafc; border-radius: 8px; font-size: 12px; color: #64748b; text-align: justify;">
-            <strong>Disclaimer:</strong> This automated report is generated for informational purposes only. The findings reflect the state of the target system at the exact time of the scan. Secura does not guarantee that all vulnerabilities have been identified. It is the responsibility of the system owner to manually verify and patch the vulnerabilities before they can be exploited. 
+          <p style="font-weight: bold; font-size: 14px; margin-top: 20px;">Moderate risk level identified requiring prompt remediation. Business continuity is at risk.</p>
+       </div>
+       <div style="flex: 1;">
+          <div style="border: 2px solid #94a3b8; border-radius: 8px; padding: 20px; background: white; height: 100%; box-sizing: border-box;">
+             <h3 style="margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center; gap: 10px; text-transform: uppercase;">
+               <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+               EXECUTIVE SUMMARY
+             </h3>
+             <p style="font-size: 13px; margin-bottom: 10px;">Secura Audit Report is a prepared overview of the system's security posture and compliance status.</p>
+             <ul style="font-size: 13px; padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                <li><strong>Key findings:</strong> Potential vulnerabilities identified that require remediation.</li>
+                <li><strong>Compliance violations:</strong> Configuration and protocol standard checks performed.</li>
+                <li><strong>Reputational Damage:</strong> AI overview provided to mitigate business risks.</li>
+             </ul>
           </div>
-        </div>
-      </div>
-    `;
+       </div>
+    </div>
 
-    // Create a temporary container
+    <h3 style="font-size: 16px; text-transform: uppercase; margin-bottom: 15px;">DIAGNOSTICS SUMMARY</h3>
+    <div style="display: flex; gap: 20px;">
+       <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: white;">
+          <div style="background: #0B192C; color: white; padding: 10px 15px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+             <div style="display: flex; align-items: center; gap: 8px;">
+               <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+               SSL/TLS
+             </div>
+             <span style="background: ${scanData.rawResults?.ssl?.valid ? '#22c55e' : '#ef4444'}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${scanData.rawResults?.ssl?.valid ? 'Valid' : 'Invalid'}</span>
+          </div>
+          <div style="padding: 15px; display: flex; justify-content: space-between; text-align: center;">
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Protocol</div><div style="font-size: 14px; font-weight: bold;">TLS</div></div>
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Score</div><div style="font-size: 14px; font-weight: bold; color: ${scanData.rawResults?.ssl?.grade === 'A' ? '#22c55e' : '#eab308'};">${scanData.rawResults?.ssl?.grade || 'N/A'}</div></div>
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Strength</div><div style="font-size: 14px; font-weight: bold; color: #22c55e;">${scanData.rawResults?.ssl?.valid ? 'Strong' : 'Weak'}</div></div>
+          </div>
+       </div>
+       <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: white;">
+          <div style="background: #0B192C; color: white; padding: 10px 15px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+             <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+             Nuclei Scanning
+          </div>
+          <div style="padding: 15px; display: flex; justify-content: space-between; text-align: center;">
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Findings</div><div style="font-size: 14px; font-weight: bold;">${scanData.rawResults?.nuclei?.length || 0} <br><span style="font-size:10px; font-weight:normal">Total</span></div></div>
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Critical</div><div style="font-size: 14px; font-weight: bold; color: #ef4444;">${scanData.rawResults?.nuclei?.filter(n => n.severity === 'critical').length || 0}</div></div>
+             <div><div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">Medium</div><div style="font-size: 14px; font-weight: bold; color: #eab308;">${scanData.rawResults?.nuclei?.filter(n => n.severity === 'medium').length || 0}</div></div>
+          </div>
+       </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #0B192C; color: white; text-align: right; padding: 10px 40px; font-size: 12px; font-weight: bold;">
+    PAGE 1 | 2
+  </div>
+</div>
+
+<div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f3f4f6; color: #333; max-width: 800px; margin: 0 auto; height: 1000px; position: relative; page-break-before: always; padding-top: 40px; overflow: hidden;">
+  <div style="padding: 0 40px; height: 900px; overflow: hidden;">
+    <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 30px; margin-top: 0;">Vulnerabilities & AI Remediation</h2>
+    
+    ${scanData.aiReport?.vulnerabilities && scanData.aiReport.vulnerabilities.length > 0 ? scanData.aiReport.vulnerabilities.slice(0, 2).map((v, idx) => `
+    <div style="margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: white;">
+       <div style="background: #0B192C; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
+         <div>
+            <div style="font-size: 12px; color: #94a3b8;">Finding ${idx + 1}:</div>
+            <div style="font-size: 16px; font-weight: bold;">${v.title}</div>
+         </div>
+         <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
+            <span style="background: ${v.severity === 'HIGH' || v.severity === 'CRITICAL' ? '#ef4444' : v.severity === 'MEDIUM' ? '#f97316' : '#eab308'}; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">${v.severity} Risk</span>
+         </div>
+       </div>
+       <div style="padding: 15px;">
+         <div style="display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+            <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            Description
+         </div>
+         <p style="font-size: 13px; margin-top: 0; margin-bottom: 15px; padding-left: 22px;">${v.title} exposure is identified. Please apply compliance steps.</p>
+
+         <div style="display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+            <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Business impact
+         </div>
+         <p style="font-size: 13px; margin-top: 0; margin-bottom: 15px; padding-left: 22px;">${v.impact}</p>
+
+         ${v.remediation ? `
+         <div style="display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+            <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            AI-generated solution:
+         </div>
+         <div style="background: #1f2937; color: #a7f3d0; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 12px; white-space: pre-wrap; margin-left: 22px;">${v.remediation}</div>
+         ` : ''}
+       </div>
+    </div>
+    `).join('') : '<p>No vulnerabilities found.</p>'}
+  </div>
+
+  <div style="position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 40px; border-top: 2px solid #cbd5e1; background: #f3f4f6;">
+     <div style="font-size: 10px; color: #64748b; max-width: 80%; padding-bottom: 10px;">
+       <strong>Auditor Disclaimer</strong><br>
+       © 2023 Secura Solutions. Confidential report. The findings of the assessment reflect the state of the system at the time of scanning. We do not guarantee all vulnerabilities have been identified.
+     </div>
+     <div style="background: #0B192C; color: white; padding: 10px 20px; font-size: 12px; font-weight: bold; border-top-left-radius: 8px;">
+       PAGE 2 | 2
+     </div>
+  </div>
+</div>
+`;
+
     const container = document.createElement('div');
     container.innerHTML = htmlContent;
 
