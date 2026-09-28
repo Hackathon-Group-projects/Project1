@@ -67,6 +67,11 @@ class Finding(BaseModel):
     evidence: List[str] = []    # specific values found, e.g. ["file1.txt", "CSP missing"]
 
 
+class CodeCorrection(BaseModel):
+    filePath: str
+    replacementCode: str
+
+
 class Recommendation(BaseModel):
     id: str             # e.g. "rec_1"
     title: str          # short title, e.g. "Enable encryption"
@@ -86,6 +91,7 @@ class RemediationOutput(BaseModel):
     summary: Summary
     findings: List[Finding]
     recommendations: List[Recommendation]
+    corrections: List[CodeCorrection] = []
     generatedAt: str                # same as timestamp — when report was generated
     grade: str                      # "A" | "B" | "C" | "D" | "F"
 
