@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 
 async function generateAiReport(rawScanData) {
   try {
-    const PYTHON_SERVICE_URL = 'http://localhost:8000/analyze';
+    const PYTHON_SERVICE_URL = process.env.AI_SERVICE_URL ? `${process.env.AI_SERVICE_URL}/analyze` : 'http://localhost:8000/analyze';
 
     // 1. PYTHON KO USKI PASAND KA FORMAT BHEJO (Match Python's ScanInput schema)
     const pythonFriendlyPayload = {

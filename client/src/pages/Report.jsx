@@ -61,7 +61,7 @@ export default function Report() {
           // Logged in: fetch history and redirect to newest
           try {
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const histRes = await fetch(`http://${window.location.hostname}:4000/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
+            const histRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
             
             if (histRes.status === 401) {
               console.warn("Token expired. Logging out.");
@@ -95,7 +95,7 @@ export default function Report() {
       }
       
       try {
-        const res = await fetch(`http://${window.location.hostname}:4000/api/scan/result/${id}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/result/${id}`);
         const data = await res.json();
         setScanData(data);
       } catch (err) {

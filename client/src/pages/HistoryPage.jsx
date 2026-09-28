@@ -20,7 +20,7 @@ export default function HistoryPage() {
     try {
       const queryParams = userEmail ? `?userEmail=${encodeURIComponent(userEmail)}` : '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`http://${window.location.hostname}:4000/api/scan/history${queryParams}`, { headers });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/history${queryParams}`, { headers });
       
       if (res.status === 401) {
         logout();
@@ -46,7 +46,7 @@ export default function HistoryPage() {
     if (!id) return;
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      await fetch(`http://${window.location.hostname}:4000/api/scan/${id}`, { method: 'DELETE', headers });
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/${id}`, { method: 'DELETE', headers });
       setScans(scans.filter(s => s._id !== id));
       setDeleteModalScanId(null);
     } catch (error) {

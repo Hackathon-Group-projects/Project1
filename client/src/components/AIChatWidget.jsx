@@ -72,7 +72,7 @@ export default function AIChatWidget() {
         report_context: scanContext ? `Focus on scan ID: ${scanContext}` : "General security context"
       };
 
-      const res = await fetch(`http://${window.location.hostname}:8000/chat`, {
+      const res = await fetch(`${import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000'}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload)

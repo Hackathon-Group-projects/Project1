@@ -48,7 +48,7 @@ export default function Hero() {
 
       // Check cache first as per blueprint
       try {
-        const res = await fetch(`http://${window.location.hostname}:4000/api/scan/cache-check?url=${encodeURIComponent(target)}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/cache-check?url=${encodeURIComponent(target)}`);
         const data = await res.json();
 
         if (data.cached && data.scanId) {
