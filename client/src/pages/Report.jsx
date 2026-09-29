@@ -330,7 +330,13 @@ const handleExportPdf = () => {
   if (scanData && scanData.rawResults) {
     if (scanData.rawResults.headers && scanData.rawResults.headers.missing) {
       missingHeadersCount = scanData.rawResults.headers.missing.length;
-      issues.medium += missingHeadersCount;
+      scanData.rawResults.headers.missing.forEach(h => {
+        const s = (h.severity || 'MEDIUM').toUpperCase();
+        if (s === 'CRITICAL') issues.critical += 1;
+        else if (s === 'HIGH') issues.high += 1;
+        else if (s === 'MEDIUM') issues.medium += 1;
+        else issues.low += 1;
+      });
     }
     if (scanData.rawResults.cves && scanData.rawResults.cves.length) {
       scanData.rawResults.cves.forEach(tech => {

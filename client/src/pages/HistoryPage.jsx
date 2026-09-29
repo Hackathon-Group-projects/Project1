@@ -60,7 +60,11 @@ export default function HistoryPage() {
     
     if (scan.rawResults?.headers?.missing) {
       scan.rawResults.headers.missing.forEach(h => {
-        medium++;
+        const s = (h.severity || 'MEDIUM').toUpperCase();
+        if (s === 'CRITICAL') critical++;
+        else if (s === 'HIGH') high++;
+        else if (s === 'MEDIUM') medium++;
+        else low++;
       });
     }
     
