@@ -39,7 +39,7 @@ function getParsedContent(description) {
   if (!description) return { explanation: 'No details provided.', fixCode: '' };
   const codeIdx = description.indexOf('\`\`\`');
   if (codeIdx === -1) {
-    return { explanation: description, fixCode: 'No code patch provided. Review configuration manually.' };
+    return { explanation: description, fixCode: description };
   }
   let splitIdx = description.lastIndexOf('\n\n', codeIdx);
   if (splitIdx === -1) splitIdx = description.lastIndexOf('\n', codeIdx);
@@ -90,7 +90,7 @@ export default function AiFixModal({ issue, onClose }) {
     try {
       const fixData = getPrFixData(issue.description, issue.title || issue.type || 'fix');
 
-      const response = await fetch('https://secura-backend-v9cl.onrender.com/api/github/create-pr', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/github/create-pr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
