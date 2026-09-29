@@ -1,0 +1,91 @@
+# ═══════════════════════════════════════════════════════════════
+#  SecAudit — Reusable GitHub Action
+#  AI-powered security vulnerability scanner for CI/CD pipelines
+#
+#  Usage in any repo:
+#    - uses: Hackathon-Group-projects/Project1@main
+#      with:
+#        gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+# ═══════════════════════════════════════════════════════════════
+
+name: "SecAudit — AI Security Scanner"
+description: "Scan code for security vulnerabilities and get AI-generated fix suggestions on PRs. Part of the Secura DevSecOps platform."
+author: "Secura Team"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  gemini-api-key:
+    description: "Google Gemini API key for AI-powered fix generation. If not provided, only rule-based hints will be shown."
+    required: false
+    default: ""
+  scan-path:
+    description: "Path or glob pattern to scan. Use '.' for the entire repository."
+    required: false
+    default: "."
+  severity-threshold:
+    description: "Minimum severity level to block the PR. Options: CRITICAL, HIGH, MEDIUM, LOW"
+    required: false
+    default: "HIGH"
+  format:
+    description: "Output format: 'pretty' for human-readable, 'json' for machine-readable."
+    required: false
+    default: "pretty"
+
+outputs:
+  total-findings:
+    description: "Total number of vulnerabilities found"
+    value: ${{ steps.scan.outputs.total }}
+  blocked:
+    description: "Whether the scan would block a PR (true/false)"
+    value: ${{ steps.scan.outputs.blocked }}
+  critical-count:
+    description: "Number of CRITICAL severity findings"
+    value: ${{ steps.scan.outputs.critical }}
+  high-count:
+    description: "Number of HIGH severity findings"
+    value: ${{ steps.scan.outputs.high }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "⚙️ Setup Node.js"
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: "📦 Install SecAudit dependencies"
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}/cli
+        npm install --production
+
+    - name: "🛡️ Run SecAudit Scanner"
+      id: scan
+      shell: bash
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+      run: |
+        echo "::group::🛡️ SecAudit Security Scan"
+        node ${{ github.action_path }}/cli/secaudit.js scan \
+          --files "${{ inputs.scan-path }}" \
+          --severity "${{ inputs.severity-threshold }}" \
+          --format "${{ inputs.format }}" || true
+        echo "::endgroup::"
+
+        # JSON output for parsing
+        node ${{ github.action_path }}/cli/secaudit.js scan \
+          --files "${{ inputs.scan-path }}" \
+          --format json > /tmp/secaudit-results.json 2>/dev/null || true
+
+        TOTAL=$(node -e "try{const r=require('/tmp/secaudit-results.json');console.log(r.totalFindings)}catch(e){console.log(0)}")
+        BLOCKED=$(node -e "try{const r=require('/tmp/secaudit-results.json');console.log(r.blocked)}catch(e){console.log(false)}")
+        CRITICAL=$(node -e "try{const r=require('/tmp/secaudit-results.json');console.log(r.summary.critical)}catch(e){console.log(0)}")
+        HIGH=$(node -e "try{const r=require('/tmp/secaudit-results.json');console.log(r.summary.high)}catch(e){console.log(0)}")
+
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+        echo "blocked=$BLOCKED" >> $GITHUB_OUTPUT
+        echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+        echo "high=$HIGH" >> $GITHUB_OUTPUT
