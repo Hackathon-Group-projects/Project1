@@ -90,7 +90,7 @@ export default function AiFixModal({ issue, onClose }) {
     try {
       const fixData = getPrFixData(issue.description, issue.title || issue.type || 'fix');
 
-      const response = await fetch('http://localhost:3000/api/github/create-pr', {
+      const response = await fetch('http://localhost:4000/api/github/create-pr', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +230,8 @@ export default function AiFixModal({ issue, onClose }) {
                       onChange={(e) => setFormData({ ...formData, patToken: e.target.value })}
                     />
                     <p className="mt-1.5 text-[9px] text-slate-500">
-                      Format: `ghp_...` | Get one from <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">GitHub Settings &rarr; Developer settings &rarr; Tokens (classic)</a>. Make sure to check the <b>repo</b> scope.
+                      Format: `ghp_...` | Get one from <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">GitHub Settings &rarr; Developer settings &rarr; Tokens (classic)</a>. <br />
+                      <span className="font-bold text-red-500">Important:</span> You MUST check the <b>`repo`</b> permission box when generating the token so it can create Pull Requests.
                     </p>
                   </div>
 
@@ -287,18 +288,18 @@ export default function AiFixModal({ issue, onClose }) {
           </div>
 
           <div className="pt-2 flex justify-end">
-             <button
-               onClick={() => {
-                 onClose();
-                 window.dispatchEvent(new CustomEvent('open-secura-chat', {
-                   detail: { query: `Can you help me understand and fix this vulnerability: ${issue.title || issue.type || 'Security Issue'}?` }
-                 }));
-               }}
-               className="px-5 py-2.5 bg-[#09090b] text-white text-xs font-semibold rounded-xl shadow-md flex items-center gap-2 hover:bg-[#18181b] transition-all hover:scale-105 active:scale-95"
-             >
-               <span className="text-sm">✨</span>
-               <span>Ask AI to Explain & Fix</span>
-             </button>
+            <button
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('open-secura-chat', {
+                  detail: { query: `Can you help me understand and fix this vulnerability: ${issue.title || issue.type || 'Security Issue'}?` }
+                }));
+              }}
+              className="px-5 py-2.5 bg-[#09090b] text-white text-xs font-semibold rounded-xl shadow-md flex items-center gap-2 hover:bg-[#18181b] transition-all hover:scale-105 active:scale-95"
+            >
+              <span className="text-sm">✨</span>
+              <span>Ask AI to Explain & Fix</span>
+            </button>
           </div>
         </div>
       </div>
