@@ -107,6 +107,67 @@ export default function Report() {
     fetchData();
   }, [id, navigate, userEmail]);
 
+  // Compute score
+  let score = 100;
+  const issues = { critical: 0, high: 0, medium: 0, low: 0 };
+  let missingHeadersCount = 0;
+  let cvesCount = 0;
+  let nucleiCount = 0;
+  let techStackName = 'Unknown';
+  let sslGrade = 'N/A';
+
+  if (scanData && scanData.rawResults) {
+    if (scanData.rawResults.headers && scanData.rawResults.headers.missing) {
+      missingHeadersCount = scanData.rawResults.headers.missing.length;
+      scanData.rawResults.headers.missing.forEach(h => {
+        const s = (h.severity || 'MEDIUM').toUpperCase();
+        if (s === 'CRITICAL') issues.critical += 1;
+        else if (s === 'HIGH') issues.high += 1;
+        else if (s === 'MEDIUM') issues.medium += 1;
+        else issues.low += 1;
+      });
+    }
+    if (scanData.rawResults.cves && scanData.rawResults.cves.length) {
+      scanData.rawResults.cves.forEach(tech => {
+        if (tech.vulnerabilities && tech.vulnerabilities.length) {
+          cvesCount += tech.vulnerabilities.length;
+          tech.vulnerabilities.forEach(vuln => {
+            const sev = (vuln.severity || 'MEDIUM').toUpperCase();
+            if (sev === 'CRITICAL') issues.critical += 1;
+            else if (sev === 'HIGH') issues.high += 1;
+            else if (sev === 'MEDIUM') issues.medium += 1;
+            else issues.low += 1;
+          });
+        }
+      });
+    }
+    if (scanData.rawResults.nuclei && scanData.rawResults.nuclei.length) {
+       nucleiCount = scanData.rawResults.nuclei.length;
+       scanData.rawResults.nuclei.forEach(n => {
+         const sev = n.severity ? n.severity.toUpperCase() : 'LOW';
+         if (sev === 'CRITICAL') issues.critical += 1;
+         else if (sev === 'HIGH') issues.high += 1;
+         else if (sev === 'MEDIUM') issues.medium += 1;
+         else issues.low += 1;
+       });
+    }
+    if (scanData.rawResults.ssl) {
+       const daysLeft = scanData.rawResults.ssl.daysRemaining;
+       if (daysLeft <= 0 || !scanData.rawResults.ssl.valid) {
+         issues.critical += 1;
+       }
+       if (scanData.rawResults.ssl.grade) {
+         sslGrade = scanData.rawResults.ssl.grade;
+       }
+    }
+    if (scanData.rawResults.tech && scanData.rawResults.tech.length > 0) {
+      techStackName = scanData.rawResults.tech[0].name;
+    }
+  }
+  
+  score = Math.max(0, 100 - (issues.critical * 25 + issues.high * 15 + issues.medium * 5 + issues.low * 2));
+  const riskLevel = score > 80 ? 'LOW' : score > 50 ? 'MEDIUM' : 'HIGH';
+
 const handleExportPdf = () => {
     if (!scanData) return;
     
@@ -135,11 +196,11 @@ const handleExportPdf = () => {
        <div style="flex: 1; text-align: center;">
           <div style="position: relative; width: 200px; height: 100px; margin: 0 auto; overflow: hidden;">
              <div style="width: 200px; height: 200px; border-radius: 50%; border: 20px solid #eee; border-top-color: #ef4444; border-right-color: #eab308; border-left-color: #22c55e; border-bottom-color: transparent; transform: rotate(45deg); box-sizing: border-box;"></div>
-             <div style="position: absolute; bottom: 0; left: 50%; width: 4px; height: 80px; background: #0B192C; transform-origin: bottom center; transform: rotate(${scanData.aiReport?.overallScore ? (scanData.aiReport.overallScore / 100) * 180 - 90 : -20}deg); margin-left: -2px; border-radius: 4px;"></div>
+             <div style="position: absolute; bottom: 0; left: 50%; width: 4px; height: 80px; background: #0B192C; transform-origin: bottom center; transform: rotate(${score ? (score / 100) * 180 - 90 : -20}deg); margin-left: -2px; border-radius: 4px;"></div>
              <div style="position: absolute; bottom: -8px; left: 50%; width: 16px; height: 16px; background: #0B192C; border-radius: 50%; margin-left: -8px;"></div>
           </div>
-          <div style="margin-top: 15px; font-size: 28px; font-weight: bold;">${scanData.aiReport?.overallScore || '69'}/100</div>
-          <div style="color: ${scanData.aiReport?.riskLevel === 'HIGH' || scanData.aiReport?.riskLevel === 'CRITICAL' ? '#ef4444' : scanData.aiReport?.riskLevel === 'LOW' ? '#22c55e' : '#eab308'}; font-weight: bold; font-size: 14px; text-transform: uppercase;">${scanData.aiReport?.riskLevel || 'MEDIUM'} RISK</div>
+          <div style="margin-top: 15px; font-size: 28px; font-weight: bold;">${score}/100</div>
+          <div style="color: ${riskLevel === 'HIGH' || riskLevel === 'CRITICAL' ? '#ef4444' : riskLevel === 'LOW' ? '#22c55e' : '#eab308'}; font-weight: bold; font-size: 14px; text-transform: uppercase;">${riskLevel} RISK</div>
           
           <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; font-size: 12px; font-weight: bold;">
             <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span> Critical: ${scanData.rawResults?.nuclei?.filter(n => n.severity === 'critical').length || 1}</div>
@@ -318,66 +379,6 @@ const handleExportPdf = () => {
     }
   };
 
-  // Compute score
-  let score = 100;
-  const issues = { critical: 0, high: 0, medium: 0, low: 0 };
-  let missingHeadersCount = 0;
-  let cvesCount = 0;
-  let nucleiCount = 0;
-  let techStackName = 'Unknown';
-  let sslGrade = 'N/A';
-
-  if (scanData && scanData.rawResults) {
-    if (scanData.rawResults.headers && scanData.rawResults.headers.missing) {
-      missingHeadersCount = scanData.rawResults.headers.missing.length;
-      scanData.rawResults.headers.missing.forEach(h => {
-        const s = (h.severity || 'MEDIUM').toUpperCase();
-        if (s === 'CRITICAL') issues.critical += 1;
-        else if (s === 'HIGH') issues.high += 1;
-        else if (s === 'MEDIUM') issues.medium += 1;
-        else issues.low += 1;
-      });
-    }
-    if (scanData.rawResults.cves && scanData.rawResults.cves.length) {
-      scanData.rawResults.cves.forEach(tech => {
-        if (tech.vulnerabilities && tech.vulnerabilities.length) {
-          cvesCount += tech.vulnerabilities.length;
-          tech.vulnerabilities.forEach(vuln => {
-            const sev = (vuln.severity || 'MEDIUM').toUpperCase();
-            if (sev === 'CRITICAL') issues.critical += 1;
-            else if (sev === 'HIGH') issues.high += 1;
-            else if (sev === 'MEDIUM') issues.medium += 1;
-            else issues.low += 1;
-          });
-        }
-      });
-    }
-    if (scanData.rawResults.nuclei && scanData.rawResults.nuclei.length) {
-       nucleiCount = scanData.rawResults.nuclei.length;
-       scanData.rawResults.nuclei.forEach(n => {
-         const sev = n.severity ? n.severity.toUpperCase() : 'LOW';
-         if (sev === 'CRITICAL') issues.critical += 1;
-         else if (sev === 'HIGH') issues.high += 1;
-         else if (sev === 'MEDIUM') issues.medium += 1;
-         else issues.low += 1;
-       });
-    }
-    if (scanData.rawResults.ssl) {
-       const daysLeft = scanData.rawResults.ssl.daysRemaining;
-       if (daysLeft <= 0 || !scanData.rawResults.ssl.valid) {
-         issues.critical += 1;
-       }
-       if (scanData.rawResults.ssl.grade) {
-         sslGrade = scanData.rawResults.ssl.grade;
-       }
-    }
-    if (scanData.rawResults.tech && scanData.rawResults.tech.length > 0) {
-      techStackName = scanData.rawResults.tech[0].name;
-    }
-  }
-  
-  score = Math.max(0, 100 - (issues.critical * 25 + issues.high * 15 + issues.medium * 5 + issues.low * 2));
-  const riskLevel = score > 80 ? 'LOW' : score > 50 ? 'MEDIUM' : 'HIGH';
 
   if (!scanData || scanData.error) {
     return (
