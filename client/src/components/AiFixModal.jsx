@@ -90,7 +90,7 @@ export default function AiFixModal({ issue, onClose }) {
     try {
       const fixData = getPrFixData(issue.description, issue.title || issue.type || 'fix');
 
-      const response = await fetch('http://localhost:4000/api/github/create-pr', {
+      const response = await fetch('https://secura-backend-v9cl.onrender.com/api/github/create-pr', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
