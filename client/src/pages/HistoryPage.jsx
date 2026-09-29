@@ -56,40 +56,50 @@ export default function HistoryPage() {
 
 
   const calculateScore = (scan) => {
-    if (!scan.rawResults) return 100;
-    let score = 100;
-    const issues = { critical: 0, high: 0, medium: 0 };
+    let critical = 0, high = 0, medium = 0, low = 0;
     
-    if (scan.rawResults.headers && scan.rawResults.headers.missing) {
-      issues.medium += scan.rawResults.headers.missing.length;
-      score -= scan.rawResults.headers.missing.length * 2;
+    if (scan.rawResults?.headers?.missing) {
+      scan.rawResults.headers.missing.forEach(h => {
+        medium++;
+      });
     }
-    if (scan.rawResults.cves && scan.rawResults.cves.length) {
-      let cvesCount = 0;
-      scan.rawResults.cves.forEach(tech => {
-        if (tech.vulnerabilities && tech.vulnerabilities.length) {
-          cvesCount += tech.vulnerabilities.length;
-          tech.vulnerabilities.forEach(vuln => {
-            if (vuln.severity === 'CRITICAL' || vuln.severity === 'HIGH') issues.high += 1;
-            else issues.medium += 1;
+    
+    if (scan.rawResults?.cves?.length > 0) {
+      scan.rawResults.cves.forEach(techGroup => {
+        if (techGroup.vulnerabilities) {
+          techGroup.vulnerabilities.forEach(vuln => {
+            const s = (vuln.severity || 'MEDIUM').toUpperCase();
+            if (s === 'CRITICAL') critical++;
+            else if (s === 'HIGH') high++;
+            else if (s === 'MEDIUM') medium++;
+            else low++;
           });
         }
       });
-      score -= cvesCount * 5;
-    }
-    if (scan.rawResults.nuclei && scan.rawResults.nuclei.length) {
-       scan.rawResults.nuclei.forEach(n => {
-         const sev = n.severity ? n.severity.toUpperCase() : 'INFO';
-         if (sev === 'CRITICAL') issues.critical += 1;
-         else if (sev === 'HIGH') issues.high += 1;
-         else issues.medium += 1;
-       });
-       score -= scan.rawResults.nuclei.length * 10;
     }
     
-    return {
-      score: Math.max(0, score),
-      issues,
+    if (scan.rawResults?.nuclei?.length > 0) {
+      scan.rawResults.nuclei.forEach(finding => {
+        const s = (finding.severity || 'LOW').toUpperCase();
+        if (s === 'CRITICAL') critical++;
+        else if (s === 'HIGH') high++;
+        else if (s === 'MEDIUM') medium++;
+        else low++;
+      });
+    }
+    
+    if (scan.rawResults?.ssl) {
+      const daysLeft = scan.rawResults.ssl.daysRemaining;
+      if (daysLeft <= 0 || !scan.rawResults.ssl.valid) {
+        critical++;
+      }
+    }
+    
+    const score = Math.max(0, 100 - (critical * 25 + high * 15 + medium * 5 + low * 2));
+    
+    return { 
+      score, 
+      issues: { high: critical + high, medium: medium + low },
       riskLevel: score > 80 ? 'LOW' : score > 50 ? 'MEDIUM' : 'HIGH'
     };
   };

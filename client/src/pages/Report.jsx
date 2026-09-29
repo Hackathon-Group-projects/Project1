@@ -337,9 +337,10 @@ const handleExportPdf = () => {
         if (tech.vulnerabilities && tech.vulnerabilities.length) {
           cvesCount += tech.vulnerabilities.length;
           tech.vulnerabilities.forEach(vuln => {
-            if (vuln.severity === 'CRITICAL') issues.critical += 1;
-            else if (vuln.severity === 'HIGH') issues.high += 1;
-            else if (vuln.severity === 'MEDIUM') issues.medium += 1;
+            const sev = (vuln.severity || 'MEDIUM').toUpperCase();
+            if (sev === 'CRITICAL') issues.critical += 1;
+            else if (sev === 'HIGH') issues.high += 1;
+            else if (sev === 'MEDIUM') issues.medium += 1;
             else issues.low += 1;
           });
         }
