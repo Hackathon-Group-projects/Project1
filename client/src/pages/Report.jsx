@@ -8,7 +8,8 @@ import {
   FiCpu, 
   FiAlertCircle, 
   FiCrosshair,
-  FiRotateCw
+  FiRotateCw,
+  FiActivity
 } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
 
@@ -16,6 +17,7 @@ import OverviewTab from '../report/OverviewTab';
 import HeadersTab from '../report/HeadersTab';
 import SslTab from '../report/SslTab';
 import CvesTab from '../report/CvesTab';
+import AttackPathTab from '../report/AttackPathTab';
 import NucleiTab from '../report/NucleiTab';
 import AiFixModal from '../components/AiFixModal';
 import AiFixTab from '../report/AiFixTab';
@@ -304,7 +306,7 @@ const handleExportPdf = () => {
   <div style="position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 40px; border-top: 2px solid #cbd5e1; background: #f3f4f6;">
      <div style="font-size: 10px; color: #64748b; max-width: 80%; padding-bottom: 10px;">
        <strong>Auditor Disclaimer</strong><br>
-       © 2023 Secura Solutions. Confidential report. The findings of the assessment reflect the state of the system at the time of scanning. We do not guarantee all vulnerabilities have been identified.
+       ©️ 2023 Secura Solutions. Confidential report. The findings of the assessment reflect the state of the system at the time of scanning. We do not guarantee all vulnerabilities have been identified.
      </div>
      <div style="background: #0B192C; color: white; padding: 10px 20px; font-size: 12px; font-weight: bold; border-top-left-radius: 8px;">
        PAGE 2 | 2
@@ -370,6 +372,8 @@ const handleExportPdf = () => {
         return <SslTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'cves':
         return <CvesTab data={scanData} onSwitchTab={setActiveTab} />;
+      case 'attack-path':
+        return <AttackPathTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'nuclei':
         return <NucleiTab data={scanData} onSwitchTab={setActiveTab} />;
       case 'ai':
@@ -557,6 +561,16 @@ const handleExportPdf = () => {
               }`}
             >
               CVEs ({cvesCount})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('attack-path')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === 'attack-path' ? 'bg-[#1a1a1a] text-white shadow-xs' : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+              }`}
+            >
+              <FiActivity className="text-[13px] text-cyan-400" />
+              <span>Attack Path</span>
             </button>
 
             <button
