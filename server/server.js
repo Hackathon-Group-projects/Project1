@@ -13,6 +13,10 @@ events.EventEmitter.defaultMaxListeners = 150;
 
 const app = express();
 
+// Fix for express-rate-limit behind Render reverse proxy
+app.set("trust proxy", 1);
+
+
 // Advanced API Hardening via Helmet
 app.use(helmet({
   contentSecurityPolicy: {
