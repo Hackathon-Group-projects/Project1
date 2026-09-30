@@ -66,7 +66,7 @@ export default function Report() {
             const histRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/scan/history?userEmail=${encodeURIComponent(userEmail)}`, { headers });
             
             if (histRes.status === 401) {
-              console.warn("Token expired. Logging out.");
+              console.warn("Session expired. Logging out.");
               logout(); // This will clear context and cause a re-render/re-fetch without userEmail
               return;
             }
@@ -316,7 +316,7 @@ const handleExportPdf = () => {
 `;
 
     const container = document.createElement('div');
-    container.innerHTML = htmlContent;
+    container.innerHTML = `${htmlContent}`;
 
     const opt = {
       margin: 0,
