@@ -85,7 +85,7 @@ Return ONLY the following JSON. No markdown, no extra text, no explanation — O
     {{
       "id": "rec_1",
       "title": "<short action title>",
-      "description": "<detailed fix with exact copy-paste code in the correct language — Nginx, Express.js, WordPress PHP, Apache, or bash>"
+      "description": "<detailed fix. You MUST provide the exact copy-paste code or configuration fix inside a markdown code block (```). Include this code block for EVERY recommendation without exception.>"
     }}
   ],
   "corrections": [
@@ -109,6 +109,7 @@ Return ONLY the following JSON. No markdown, no extra text, no explanation — O
 ## IMPORTANT:
 - Every finding MUST have a matching recommendation
 - Include exact, working code in recommendations (not pseudocode)
+- You MUST wrap ALL code snippets within standard markdown code blocks (```) inside the description field. The auto-fix PR feature will fail if these backticks are missing.
 - Use OWASP documentation context if provided above
 - Be specific — mention the actual header names, CVE IDs, file names found
 """

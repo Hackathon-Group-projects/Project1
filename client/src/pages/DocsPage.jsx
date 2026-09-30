@@ -1,14 +1,52 @@
 import React, { useState } from 'react';
-import { FiBook, FiCpu, FiShield, FiCode, FiTerminal, FiZap } from 'react-icons/fi';
+import { 
+  FiBook, 
+  FiCpu, 
+  FiShield, 
+  FiCode, 
+  FiTerminal, 
+  FiZap, 
+  FiGitPullRequest, 
+  FiCheckCircle, 
+  FiAlertTriangle, 
+  FiCopy, 
+  FiCheck,
+  FiExternalLink,
+  FiAlertCircle
+} from 'react-icons/fi';
 
 export default function DocsPage() {
   const [activeTab, setActiveTab] = useState('intro');
+  const [copiedCmd, setCopiedCmd] = useState('');
+
+  const copyToClipboard = (cmd) => {
+    navigator.clipboard.writeText(cmd);
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(''), 2000);
+  };
 
   const tabs = [ 
     { id: 'intro', label: 'Introduction', icon: <FiBook /> },
     { id: 'engine', label: 'Scanning Engine', icon: <FiCpu /> },
     { id: 'ai', label: 'AI Integration', icon: <FiZap /> },
+    { id: 'cicd', label: 'CI/CD (DevSecOps)', icon: <FiGitPullRequest /> },
     { id: 'api', label: 'API Reference', icon: <FiCode /> },
+  ];
+
+  const rulesList = [
+    { id: "SEC-001", name: "Hardcoded Secret / API Key", sev: "CRITICAL", cwe: "CWE-798", owasp: "A07:2021" },
+    { id: "SEC-002", name: "SQL Injection (String Concat)", sev: "CRITICAL", cwe: "CWE-89", owasp: "A03:2021" },
+    { id: "SEC-003", name: "DOM-Based XSS (innerHTML)", sev: "CRITICAL", cwe: "CWE-79", owasp: "A03:2021" },
+    { id: "SEC-004", name: "Code Injection (eval / Function)", sev: "HIGH", cwe: "CWE-94", owasp: "A03:2021" },
+    { id: "SEC-005", name: "Command Injection (child_process)", sev: "HIGH", cwe: "CWE-78", owasp: "A03:2021" },
+    { id: "SEC-006", name: "Missing Security Headers (Helmet)", sev: "HIGH", cwe: "CWE-693", owasp: "A05:2021" },
+    { id: "SEC-007", name: "Insecure Crypto (MD5 / SHA-1)", sev: "HIGH", cwe: "CWE-327", owasp: "A02:2021" },
+    { id: "SEC-008", name: "Path Traversal (File System)", sev: "MEDIUM", cwe: "CWE-22", owasp: "A01:2021" },
+    { id: "SEC-009", name: "Server-Side Request Forgery (SSRF)", sev: "MEDIUM", cwe: "CWE-918", owasp: "A10:2021" },
+    { id: "SEC-010", name: "Sensitive Data Exposed in Logs", sev: "MEDIUM", cwe: "CWE-532", owasp: "A09:2021" },
+    { id: "SEC-011", name: "Insecure Cookie Flags (No HttpOnly)", sev: "LOW", cwe: "CWE-614", owasp: "A07:2021" },
+    { id: "SEC-012", name: "Hardcoded JWT Secret String", sev: "HIGH", cwe: "CWE-321", owasp: "A02:2021" },
+    { id: "SEC-013", name: "Open CORS Wildcard Origin (*)", sev: "MEDIUM", cwe: "CWE-942", owasp: "A05:2021" },
   ];
 
   return (
@@ -34,6 +72,11 @@ export default function DocsPage() {
                     {tab.icon}
                   </span>
                   {tab.label}
+                  {tab.id === 'cicd' && (
+                    <span className="ml-auto text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase">
+                      New
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -198,6 +241,212 @@ export default function DocsPage() {
                 Gemini 1.5 Flash offers a massive context window, low latency, and highly reliable JSON schema adherence, making it the perfect engine 
                 for converting raw scan logs into human-readable executive summaries and developer fixes in seconds.
               </p>
+            </div>
+          )}
+
+          {/* 🛡️ Member 4: DevSecOps & CI/CD Pipeline Tab */}
+          {activeTab === 'cicd' && (
+            <div className="animate-fadeIn">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                  <FiGitPullRequest className="text-xl" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">CI/CD Pipeline (DevSecOps)</h1>
+                    <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                      Pre-Deploy Guard
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">SecAudit Engine & GitHub Actions Integration</p>
+                </div>
+              </div>
+
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                Secura is more than a dashboard. Our <strong>DevSecOps CI/CD Integration</strong> ensures vulnerable code never reaches production. 
+                Whenever a developer opens a Pull Request, our automated pipeline runs static analysis, blocks vulnerable merges, and auto-comments 
+                <strong> Gemini AI-generated fixes</strong> directly on the PR code lines.
+              </p>
+
+              {/* Workflow Diagram */}
+              <div className="bg-[#0f1115] text-slate-200 p-6 rounded-2xl shadow-lg border border-slate-800 mb-8">
+                <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                  <span className="text-xs font-mono uppercase tracking-wider text-slate-400">CI/CD Pipeline Architecture</span>
+                  <span className="text-xs font-mono text-emerald-400">● Live Gatekeeper</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-center text-xs font-mono">
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl flex flex-col justify-center items-center">
+                    <span className="text-blue-400 text-lg mb-1">1. Push / PR</span>
+                    <span className="text-slate-400">Developer creates PR on GitHub</span>
+                  </div>
+                  <div className="hidden md:flex items-center justify-center text-slate-600 font-bold">➔</div>
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl flex flex-col justify-center items-center">
+                    <span className="text-indigo-400 text-lg mb-1">2. SecAudit Scan</span>
+                    <span className="text-slate-400">Runs 13 static analysis rules</span>
+                  </div>
+                  <div className="hidden md:flex items-center justify-center text-slate-600 font-bold">➔</div>
+                  <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl flex flex-col justify-center items-center">
+                    <span className="text-rose-400 text-lg mb-1">3. PR Gate & AI Fix</span>
+                    <span className="text-slate-400">Blocks merge & comments code fix</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Three Value Pillars */}
+              <div className="grid gap-4 md:grid-cols-3 mb-8">
+                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2 text-rose-600 font-bold text-sm">
+                    <FiAlertCircle /> 
+                    <span>Zero-Leak Merging</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Exits with code 1 and requests changes on any PR with CRITICAL or HIGH vulnerabilities, preventing vulnerable code from ever reaching Vercel.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2 text-indigo-600 font-bold text-sm">
+                    <FiZap /> 
+                    <span>Gemini AI Auto-Fix</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Instead of just warning developers, Gemini 1.5 Flash outputs copy-paste-ready suggestions directly in GitHub review comments.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2 text-emerald-600 font-bold text-sm">
+                    <FiTerminal /> 
+                    <span>Standalone CLI</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Engineers can run <code className="bg-white px-1 py-0.5 rounded border text-[11px]">secaudit scan</code> locally before committing, catching security bugs early.
+                  </p>
+                </div>
+              </div>
+
+              {/* CLI Command Center */}
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center justify-between">
+                  <span>SecAudit CLI Commands</span>
+                  <span className="text-xs font-normal text-slate-500 font-mono">Located at ./cli/secaudit.js</span>
+                </h3>
+
+                <div className="space-y-2">
+                  {[
+                    { cmd: 'node cli/secaudit.js scan', desc: 'Scan current repository for security vulnerabilities' },
+                    { cmd: 'node cli/secaudit.js scan --files "src/**/*.js" --severity HIGH', desc: 'Scan specific path and only block on HIGH/CRITICAL issues' },
+                    { cmd: 'node cli/secaudit.js scan --files cli/examples/vulnerable-demo.js', desc: 'Scan the built-in vulnerable demo file' },
+                    { cmd: 'node cli/secaudit.js rules', desc: 'List all 13 OWASP & CWE security detection rules' },
+                    { cmd: 'node cli/secaudit.js scan --format json', desc: 'Emit structured JSON payload for CI/CD runners' },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs font-mono group">
+                      <div className="overflow-x-auto mr-3">
+                        <span className="text-emerald-400 mr-2">$</span>
+                        <span className="text-slate-200">{item.cmd}</span>
+                        <span className="block text-[11px] text-slate-400 mt-1 font-sans">{item.desc}</span>
+                      </div>
+                      <button 
+                        onClick={() => copyToClipboard(item.cmd)}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors shrink-0"
+                      >
+                        {copiedCmd === item.cmd ? (
+                          <>
+                            <FiCheck className="text-emerald-400" />
+                            <span className="text-emerald-400">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiCopy />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Simulated GitHub PR Comment Mockup */}
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Live Pull Request Bot Simulation</h3>
+                <div className="border border-slate-300 rounded-xl overflow-hidden shadow-sm font-sans">
+                  {/* PR Header */}
+                  <div className="bg-[#f6f8fa] border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                      <span className="font-bold text-xs text-slate-800 font-mono">SecAudit-CI-Bot requested changes</span>
+                    </div>
+                    <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full">Merge Blocked</span>
+                  </div>
+
+                  {/* Comment Body */}
+                  <div className="p-4 text-xs text-slate-700 bg-white space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        🔴 CRITICAL
+                      </span>
+                      <span className="font-bold text-slate-900">SQL Injection via String Concatenation [SEC-002]</span>
+                      <span className="text-slate-400 font-mono">CWE-89 • OWASP A03:2021</span>
+                    </div>
+
+                    <p className="text-slate-600">
+                      Raw SQL query constructed via string concatenation with dynamic parameter. This allows arbitrary SQL execution and database compromise.
+                    </p>
+
+                    {/* Code Suggestion Block */}
+                    <div className="border border-slate-200 rounded-lg overflow-hidden font-mono text-[11px]">
+                      <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-200 text-slate-500 flex justify-between items-center">
+                        <span>Suggested change (Gemini AI)</span>
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">1-Click Apply</span>
+                      </div>
+                      <div className="bg-rose-50/70 text-rose-800 px-3 py-1 border-b border-rose-100">
+                        - const result = db.query("SELECT * FROM users WHERE name = '" + username + "'");
+                      </div>
+                      <div className="bg-emerald-50 text-emerald-800 px-3 py-1">
+                        + const result = await db.query('SELECT * FROM users WHERE name = $1', [username]);
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 13 Rules Matrix */}
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Enforced Security Rules (13 Standards)</h3>
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                        <th className="p-3">Rule ID</th>
+                        <th className="p-3">Vulnerability Category</th>
+                        <th className="p-3">Severity</th>
+                        <th className="p-3">Standard</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                      {rulesList.map((rule) => (
+                        <tr key={rule.id} className="hover:bg-slate-50/50">
+                          <td className="p-3 font-bold text-slate-900">{rule.id}</td>
+                          <td className="p-3 font-sans text-slate-700">{rule.name}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              rule.sev === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                              rule.sev === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                              rule.sev === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {rule.sev}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-500">{rule.cwe} • {rule.owasp}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
           )}
 

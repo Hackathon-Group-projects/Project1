@@ -31,7 +31,7 @@ const newParser = `function getParsedContent(description) {
   
   if (codeIdx === -1) {
     // If no code blocks exist, just put the whole text in explanation
-    return { explanation: description, fixCode: 'No code patch provided. Review configuration manually.' };
+    return { explanation: description, fixCode: '' };
   }
   
   // Find the last paragraph break BEFORE the code block
