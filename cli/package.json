@@ -1,0 +1,32 @@
+{
+  "name": "secaudit",
+  "version": "1.0.0",
+  "description": "SecAudit — AI-powered security vulnerability scanner for CI/CD pipelines. Part of the Secura DevSecOps platform.",
+  "main": "secaudit.js",
+  "bin": {
+    "secaudit": "./secaudit.js"
+  },
+  "scripts": {
+    "scan": "node secaudit.js scan",
+    "scan:json": "node secaudit.js scan --format json",
+    "rules": "node secaudit.js rules",
+    "demo": "node secaudit.js scan --files examples/vulnerable-demo.js",
+    "demo:json": "node secaudit.js scan --files examples/vulnerable-demo.js --format json",
+    "test": "node secaudit.js scan --files examples/vulnerable-demo.js --format json"
+  },
+  "keywords": [
+    "security",
+    "scanner",
+    "devsecops",
+    "cicd",
+    "vulnerability",
+    "sast",
+    "owasp",
+    "secura"
+  ],
+  "author": "Secura Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  }
+}

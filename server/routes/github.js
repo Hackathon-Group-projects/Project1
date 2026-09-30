@@ -8,8 +8,13 @@ router.post('/create-pr', async (req, res) => {
     try {
         const { repoUrl, patToken, fixData } = req.body;
 
-        if (!repoUrl || !patToken || !fixData || !fixData.filePath || !fixData.replacementCode) {
+        if (!repoUrl || !patToken || !fixData || !fixData.filePath) {
             return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        // If empty replace with default string
+        if (!fixData.replacementCode) {
+            fixData.replacementCode = "/* Manual verification required. AI didn't provide a code block. */";
         }
 
         // Parse owner and repo from URL

@@ -1,0 +1,153 @@
+# ═══════════════════════════════════════════════════════════════
+#  Secura DevSecOps — CI/CD Security Scan Pipeline
+#
+#  Triggers on every Pull Request to main/develop.
+#  Scans changed files for security vulnerabilities using SecAudit.
+#  If CRITICAL/HIGH issues found:
+#    → Blocks the PR (exit code 1)
+#    → Posts AI-generated fix suggestions as PR review comments
+#
+#  Requires:
+#    - GEMINI_API_KEY secret (for AI fix generation)
+#    - GITHUB_TOKEN (built-in, for PR comments)
+# ═══════════════════════════════════════════════════════════════
+
+name: "🛡️ SecAudit Security Scan"
+
+on:
+  pull_request:
+    branches: [main, develop, master]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-scan:
+    name: "🔍 Scan for Vulnerabilities"
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Checkout the PR code ──────────────────────────
+      - name: "📥 Checkout code"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff comparison
+
+      # ── Step 2: Setup Node.js ─────────────────────────────────
+      - name: "⚙️ Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # ── Step 3: Install CLI dependencies ──────────────────────
+      - name: "📦 Install SecAudit CLI dependencies"
+        run: |
+          cd cli
+          npm install --production
+        # Only the Gemini SDK is needed
+
+      # ── Step 4: Get list of changed files in this PR ──────────
+      - name: "📋 Get changed files"
+        id: changed-files
+        run: |
+          # Get files changed in this PR (compared to base branch)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD | grep -E '\.(js|jsx|ts|tsx|py|php|rb|java|go|env|yml|yaml|json)$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No scannable files changed in this PR."
+            echo "has_files=false" >> $GITHUB_OUTPUT
+          else
+            echo "Files to scan:"
+            echo "$CHANGED_FILES"
+            # Save as comma-separated for the scanner
+            COMMA_FILES=$(echo "$CHANGED_FILES" | tr '\n' ',' | sed 's/,$//')
+            echo "files=$COMMA_FILES" >> $GITHUB_OUTPUT
+            echo "has_files=true" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Step 5: Run SecAudit Security Scanner ─────────────────
+      - name: "🛡️ Run SecAudit Scanner"
+        id: scan
+        if: steps.changed-files.outputs.has_files == 'true'
+        run: |
+          echo "::group::SecAudit Scan Results"
+          node cli/secaudit.js scan --files "${{ steps.changed-files.outputs.files }}" --format pretty || true
+          echo "::endgroup::"
+
+          # Run again with JSON output for machine processing
+          node cli/secaudit.js scan --files "${{ steps.changed-files.outputs.files }}" --format json > scan-results.json 2>/dev/null || true
+
+          # Check if blocked
+          BLOCKED=$(node -e "const r = require('./scan-results.json'); console.log(r.blocked ? 'true' : 'false')")
+          echo "blocked=$BLOCKED" >> $GITHUB_OUTPUT
+
+          TOTAL=$(node -e "const r = require('./scan-results.json'); console.log(r.totalFindings)")
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+      # ── Step 6: Generate AI Fixes & Post PR Review ────────────
+      - name: "🤖 Post AI-Powered Fix Suggestions"
+        if: steps.changed-files.outputs.has_files == 'true' && steps.scan.outputs.total != '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const { postPRReview, getPRChangedFiles } = require('./cli/github-commenter');
+
+            async function main() {
+              const scanResults = JSON.parse(fs.readFileSync('scan-results.json', 'utf-8'));
+
+              const owner = '${{ github.repository_owner }}';
+              const repo = '${{ github.event.repository.name }}';
+              const prNumber = ${{ github.event.pull_request.number }};
+
+              // Get changed files with patches for inline comment positioning
+              const changedFiles = await getPRChangedFiles(owner, repo, prNumber, process.env.GITHUB_TOKEN);
+
+              await postPRReview({
+                owner,
+                repo,
+                prNumber,
+                token: process.env.GITHUB_TOKEN,
+                geminiKey: process.env.GEMINI_API_KEY,
+                findings: scanResults.findings,
+                changedFiles,
+              });
+            }
+
+            main().catch(err => {
+              console.error('Failed to post PR review:', err.message);
+              process.exit(0); // Don't fail the workflow if commenting fails
+            });
+          "
+
+      # ── Step 7: Post success comment if no issues ─────────────
+      - name: "✅ Post clean scan result"
+        if: steps.changed-files.outputs.has_files == 'true' && steps.scan.outputs.total == '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "## 🛡️ SecAudit Security Scan — ✅ PASSED
+
+          No security vulnerabilities detected in this PR's changed files. Great job! 🎉
+
+          **Files scanned:** $(echo '${{ steps.changed-files.outputs.files }}' | tr ',' '\n' | wc -l)
+
+          ---
+          <sub>Powered by <b>Secura</b> DevSecOps Pipeline | AI-Augmented Security Scanner</sub>"
+
+      # ── Step 8: Skip message if no scannable files ────────────
+      - name: "⏭️ No files to scan"
+        if: steps.changed-files.outputs.has_files == 'false'
+        run: echo "No scannable files changed in this PR — skipping security scan."
+
+      # ── Step 9: Block PR if vulnerabilities found ─────────────
+      - name: "⛔ Block PR on security issues"
+        if: steps.scan.outputs.blocked == 'true'
+        run: |
+          echo "::error::SecAudit found CRITICAL or HIGH severity vulnerabilities. PR is blocked until issues are resolved."
+          echo "Check the PR review comments for AI-generated fix suggestions."
+          exit 1

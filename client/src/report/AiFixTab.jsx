@@ -38,22 +38,22 @@ const CopyableCodeBlock = ({ className, children, ...props }) => {
 
 function getParsedContent(description) {
   if (!description) return { explanation: 'No details provided.', fixCode: '' };
-  
+
   const codeIdx = description.indexOf('```');
-  
+
   if (codeIdx === -1) {
-    // If no code blocks exist, just put the whole text in explanation
-    return { explanation: description, fixCode: 'No code patch provided. Review configuration manually.' };
+    // If no code blocks exist, just put the whole text as fixCode so it's not empty
+    return { explanation: description, fixCode: description };
   }
-  
+
   // Find the last paragraph break BEFORE the code block
   let splitIdx = description.lastIndexOf('\n\n', codeIdx);
-  
+
   // If there's no double newline, try a single newline
   if (splitIdx === -1) {
     splitIdx = description.lastIndexOf('\n', codeIdx);
   }
-  
+
   // If still no newline, just split exactly at the code block
   if (splitIdx === -1 || splitIdx === 0) {
     splitIdx = codeIdx;
@@ -62,16 +62,16 @@ function getParsedContent(description) {
   const explanation = description.substring(0, splitIdx).trim();
   const fixCode = description.substring(splitIdx).trim();
 
-  return { 
-    explanation: explanation || 'Security configuration issue detected.', 
-    fixCode: fixCode 
+  return {
+    explanation: explanation || 'Security configuration issue detected.',
+    fixCode: fixCode
   };
 }
 
 export default function AiFixTab({ data }) {
-      const [chatInput, setChatInput] = useState('');
+  const [chatInput, setChatInput] = useState('');
 
-  
+
 
   const handleAskAI = (e) => {
     e.preventDefault();
@@ -94,7 +94,7 @@ export default function AiFixTab({ data }) {
 
   const aiData = data.aiReport;
   const issues = aiData.vulnerabilities || [];
-  
+
   const openChatWithContext = (issueTitle) => {
     const event = new CustomEvent('open-secura-chat', {
       detail: { query: `How do I fix ${issueTitle}?` }
@@ -114,7 +114,7 @@ export default function AiFixTab({ data }) {
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">Executive Remediation Plan</h1>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed">
-              AI-generated step-by-step instructions to patch detected vulnerabilities. 
+              AI-generated step-by-step instructions to patch detected vulnerabilities.
             </p>
           </div>
         </div>
@@ -128,13 +128,12 @@ export default function AiFixTab({ data }) {
               <div className={`absolute top-0 left-0 w-1 h-full ${isCritical ? 'bg-red-500' : 'bg-amber-500'}`} />
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${
-                    isCritical ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${isCritical ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
                     {issue.severity}
                   </span>
                 </div>
-                <button 
+                <button
                   onClick={() => openChatWithContext(issue.title || issue.type)}
                   className="text-[10px] font-bold text-cyan-600 hover:text-cyan-700 flex items-center gap-1 bg-cyan-50 hover:bg-cyan-100 px-2 py-1 rounded-md transition-colors"
                 >
@@ -145,7 +144,7 @@ export default function AiFixTab({ data }) {
               <p className="text-xs text-zinc-500 line-clamp-2 mb-4 leading-relaxed flex-1">
                 {issue.description}
               </p>
-              <button 
+              <button
                 onClick={() => window.dispatchEvent(new CustomEvent('open-ai-modal', { detail: { issue: issue } }))}
                 className="w-full mt-auto py-2 rounded-lg bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-[0.98] transition-all"
               >
@@ -157,7 +156,7 @@ export default function AiFixTab({ data }) {
         })}
       </div>
 
-      
+
       {/* Custom AI Query Card */}
       <div className="mt-8 bg-gradient-to-br from-zinc-900 to-black rounded-2xl p-6 sm:p-8 shadow-xl border border-zinc-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -171,10 +170,10 @@ export default function AiFixTab({ data }) {
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Have a specific question about these patches?</h3>
             <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
-              Type your question below and Secura AI will answer it using your scan data as context. 
+              Type your question below and Secura AI will answer it using your scan data as context.
             </p>
           </div>
-          
+
           <div className="flex-1 w-full">
             <form onSubmit={handleAskAI} className="relative flex items-center w-full">
               <input
@@ -195,7 +194,7 @@ export default function AiFixTab({ data }) {
         </div>
       </div>
 
-      
+
     </div>
   );
 }
