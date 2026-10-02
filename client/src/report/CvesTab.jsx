@@ -90,10 +90,12 @@ export default function CvesTab({ data, onSwitchTab }) {
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Recommended Action: Upgrade software</span>
                 <button 
                   onClick={() => {
-                    
                     setTimeout(() => {
                       window.dispatchEvent(new CustomEvent('open-ai-modal', {
-                        detail: { keyword: cve.id }
+                        detail: { 
+                          keyword: cve.id,
+                          issue: { type: 'CVE', title: cve.id, description: cve.summary || cve.details, severity: cve.severity || 'HIGH' }
+                        }
                       }));
                     }, 100);
                   }}

@@ -65,10 +65,12 @@ export default function HeadersTab({ data, onSwitchTab }) {
                 <div className="mt-1 flex justify-end">
                   <button 
                     onClick={() => {
-                      
                       setTimeout(() => {
                         window.dispatchEvent(new CustomEvent('open-ai-modal', {
-                          detail: { keyword: h.header }
+                          detail: { 
+                            keyword: h.header, 
+                            issue: { type: 'Header', title: h.header, description: explain.risk, severity: 'MEDIUM' } 
+                          }
                         }));
                       }, 100);
                     }}

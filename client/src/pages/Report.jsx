@@ -35,20 +35,23 @@ export default function Report() {
 
   React.useEffect(() => {
     const handleOpenModal = (e) => {
+      let matched = null;
       if (e.detail && e.detail.keyword && scanData?.aiReport?.vulnerabilities) {
         const keyword = e.detail.keyword.toLowerCase();
         const issuesToSearch = scanData.aiReport.vulnerabilities;
-        const matched = issuesToSearch.find(issue => 
+        matched = issuesToSearch.find(issue => 
           (issue.title && issue.title.toLowerCase().includes(keyword)) ||
           (issue.description && issue.description.toLowerCase().includes(keyword))
         );
-        if (matched) {
-          setGlobalIssue(matched);
-        } else if (issuesToSearch.length > 0) {
-          setGlobalIssue(issuesToSearch[0]);
+        if (!matched && issuesToSearch.length > 0) {
+          matched = issuesToSearch[0];
         }
+      }
+      
+      if (matched) {
+        setGlobalIssue(matched);
       } else if (e.detail && e.detail.issue) {
-         setGlobalIssue(e.detail.issue);
+        setGlobalIssue(e.detail.issue);
       }
     };
     window.addEventListener('open-ai-modal', handleOpenModal);
