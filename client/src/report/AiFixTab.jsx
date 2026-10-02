@@ -83,7 +83,10 @@ export default function AiFixTab({ data }) {
     setChatInput('');
   };
 
-  if (!data || !data.aiReport) {
+  const aiData = data?.aiReport || {};
+  const issues = aiData.vulnerabilities || [];
+
+  if (!data || !data.aiReport || issues.length === 0) {
     return (
       <div className="p-10 text-center flex flex-col items-center">
         <HiSparkles className="text-4xl text-zinc-300 mb-3" />
@@ -91,9 +94,6 @@ export default function AiFixTab({ data }) {
       </div>
     );
   }
-
-  const aiData = data.aiReport;
-  const issues = aiData.vulnerabilities || [];
 
   const openChatWithContext = (issueTitle) => {
     const event = new CustomEvent('open-secura-chat', {

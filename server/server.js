@@ -60,9 +60,9 @@ app.use(express.json({ limit: '10kb' })); // Payload size limit for hardening
 
 // Implementation of Rate Limiting 
 const apiLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 24 hours.'
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // limit each IP to 500 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again later.' }
 });
 
 // Apply rate limiter to all API routes

@@ -130,6 +130,12 @@ export default function SlidingAuthCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signUpEmail, password: signUpPassword, name: signUpName })
       });
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
+
       const data = await res.json();
       
       if (res.ok) {
@@ -140,7 +146,8 @@ export default function SlidingAuthCard() {
         toast.error(data.error || 'Registration failed', toastConfig);
       }
     } catch (err) {
-      toast.error('Server error during registration', toastConfig);
+      console.error(err);
+      toast.error(err.message === "Server returned an invalid response. Please try again." ? err.message : 'Server error during registration', toastConfig);
     }
   };
 
@@ -154,6 +161,12 @@ export default function SlidingAuthCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signInEmail, password: signInPassword })
       });
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned an invalid response. Please try again.");
+      }
+
       const data = await res.json();
       
       if (res.ok) {
@@ -164,7 +177,8 @@ export default function SlidingAuthCard() {
         toast.error(data.error || 'Invalid credentials', toastConfig);
       }
     } catch (err) {
-      toast.error('Server error during login', toastConfig);
+      console.error(err);
+      toast.error(err.message === "Server returned an invalid response. Please try again." ? err.message : 'Server error during login', toastConfig);
     }
   };
 

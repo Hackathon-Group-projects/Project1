@@ -68,10 +68,9 @@ export default function NucleiTab({ data, onSwitchTab }) {
               <div className="mt-3 flex justify-end">
                 <button 
                   onClick={() => {
-                    
                     setTimeout(() => {
                       window.dispatchEvent(new CustomEvent('open-ai-modal', {
-                        detail: { keyword: finding.name || finding.type }
+                        detail: { keyword: finding.name || finding.type, issue: finding }
                       }));
                     }, 100);
                   }}
